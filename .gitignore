@@ -136,8 +136,3 @@ cache/
 
 # images
 img/
-
-# Big files
-data/embeddings/GoogleNews-vectors-negative300.bin.gz
-data/embeddings/word2vec.bin
-data/embeddings/emoji2vec.bin

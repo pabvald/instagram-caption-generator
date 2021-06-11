@@ -9,7 +9,6 @@ ipykernel = "*"
 rouge-score = "*"
 gensim = "*"
 torchvision = "*"
-python-levenshtein = "*"
 
 [dev-packages]
 
