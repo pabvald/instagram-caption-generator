@@ -102,6 +102,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
+.vscode
 .env
 .venv
 env/
@@ -128,6 +129,15 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# tmp files
+*Zone.Identifier
+tmp/
+cache/
 
-# Images 
+# images
 img/
+
+# Big files
+data/embeddings/GoogleNews-vectors-negative300.bin.gz
+data/embeddings/word2vec.bin
+data/embeddings/emoji2vec.bin
