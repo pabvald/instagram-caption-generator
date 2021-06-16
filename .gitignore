@@ -134,10 +134,10 @@ dmypy.json
 tmp/
 cache/
 
-# images
+# datasets
 img/
 
-# Big files
-data/embeddings/GoogleNews-vectors-negative300.bin.gz
-data/embeddings/word2vec.bin
-data/embeddings/emoji2vec.bin
+# embeddings
+GoogleNews-vectors-negative300.bin.gz
+word2vec.bin
+emoji2vec.bin
