@@ -7,6 +7,7 @@ import re
 import pandas as pd
 import argparse
 from PIL import Image
+from gensim.models import KeyedVectors
 from os.path import join as pjoin
 #import pytesseract as tess
 #tess.pytesseract.tesseract_cmd = r'D:\Tesseract-OCR\tesseract.exe'
@@ -19,11 +20,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-ml", "--minimal-length", default=2)
 args = vars(parser.parse_args())
 
-# constants
+# paths
 PATH_CAPTIONS = '../data/datasets/instagram/captions'
 PATH_SLANG= '../data/preprocessing/slang.txt'
+PATH_WORD2VEC = '../data/embeddings/word2vec.bin'
+PATH_EMOJI2VEC = '../data/embeddings/emoji2vec.bin'
+
+# constants
 PUNCTUATIONS = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
 CAPT_MIN_LENGTH = int(args['minimal_length']) 
+
 
 # functions
 def slang_translator(filepath, text):
@@ -49,7 +55,7 @@ def slang_translator(filepath, text):
 
     return(' '.join(text))
 
-def preprocess_captions(data):
+def preprocess_captions(data, word2vec, emoji2vec):
     """ Preprocess the captions: remove non-english or punctuation characters,
     remove captions shorter than the minimum, lowercase captions """
 
@@ -57,6 +63,9 @@ def preprocess_captions(data):
         if type(caption)!=str or len(caption.split()) < CAPT_MIN_LENGTH:
             data.drop(row, axis=0, inplace=True)
         else:
+            # slang translation
+            caption = slang_translator(PATH_SLANG, caption)
+
             new_caption = ""
             for _char in caption:
                 # ignore non-english and punctuation characters
@@ -66,12 +75,16 @@ def preprocess_captions(data):
                 elif ord(_char) > 120000 and ord(_char) < 130000:
                     new_caption += (" " + _char + " ")  
             
-            # slang translation
-            new_caption = slang_translator(PATH_SLANG, new_caption)
             # lowercasing
             new_caption = new_caption.lower()
+            
+            # check that a minimum of words have an embedding, discard if not
+            actual_length = 0
+            for word in new_caption.split():
+                if (word in word2vec) or (word in emoji2vec):
+                    actual_length += 1
 
-            if len(new_caption.split()) < CAPT_MIN_LENGTH:
+            if actual_length < CAPT_MIN_LENGTH:
                 data.drop(row, axis=0, inplace=True)
             else:           
                 data['Caption'][row] = new_caption
@@ -102,16 +115,27 @@ def preprocess_captions(data):
 
 def main():
     """ MAIN """
+    print("Preprocessing Instagram dataset....")
+    
+    # load word2vec and emoji2vec embeddings
+    print("\tLoading embeddings...")
+    wv = KeyedVectors.load_word2vec_format(PATH_WORD2VEC, binary=True)
+    ev = KeyedVectors.load_word2vec_format(PATH_EMOJI2VEC, binary=True)
+
     # load .csv file containing image locations and captions 
+    print("\tLoading captions...")
     data = pd.read_csv(pjoin(PATH_CAPTIONS, 'captions_csv.csv'))
 
     # preprocess the captions
-    data = preprocess_captions(data)
+    print("\tPrepocessing captions...")
+    data = preprocess_captions(data, wv, ev)
 
     # preprocess the images
+    # print("\tPreprocessing images...")
     # data = preprocess_images(data)
 
     # save preprocessed captions to .csv
+    print("\tSaving preprocessed dataset...")
     data.to_csv(pjoin(PATH_CAPTIONS, "preprocessed_captions.csv"))
 
     # save preprocessed captions to .json with evaluation format
