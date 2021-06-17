@@ -4,9 +4,9 @@
 import csv
 import json
 import re
+import numpy as np
 import pandas as pd
 import argparse
-from PIL import Image
 from gensim.models import KeyedVectors
 from os.path import join as pjoin
 #import pytesseract as tess
@@ -18,10 +18,12 @@ pd.options.mode.chained_assignment = None  # default='warn'
 # parse parameters
 parser = argparse.ArgumentParser()
 parser.add_argument("-ml", "--minimal-length", default=2)
+parser.add_argument("-t", "--train-size", default=0.6)
+parser.add_argument("-v", "--val-size", default=0.2)
 args = vars(parser.parse_args())
 
 # paths
-PATH_CAPTIONS = '../data/datasets/instagram/captions'
+PATH_CAPTIONS = '../data/datasets/instagram'
 PATH_SLANG= '../data/preprocessing/slang.txt'
 PATH_WORD2VEC = '../data/embeddings/word2vec.bin'
 PATH_EMOJI2VEC = '../data/embeddings/emoji2vec.bin'
@@ -29,6 +31,10 @@ PATH_EMOJI2VEC = '../data/embeddings/emoji2vec.bin'
 # constants
 PUNCTUATIONS = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
 CAPT_MIN_LENGTH = int(args['minimal_length']) 
+RAND_STATE = 42
+TRAIN_SIZE = float(args['train_size'])
+VAL_SIZE = float(args['val_size'])
+# TEST_SIZE = 1 - TRAIN_SIZE - VAL_SIZE
 
 
 # functions
@@ -58,6 +64,7 @@ def slang_translator(filepath, text):
 def preprocess_captions(data, word2vec, emoji2vec):
     """ Preprocess the captions: remove non-english or punctuation characters,
     remove captions shorter than the minimum, lowercase captions """
+    lengths = []
 
     for row, caption in enumerate(data['Caption']):
         if type(caption)!=str or len(caption.split()) < CAPT_MIN_LENGTH:
@@ -87,10 +94,13 @@ def preprocess_captions(data, word2vec, emoji2vec):
             if actual_length < CAPT_MIN_LENGTH:
                 data.drop(row, axis=0, inplace=True)
             else:           
+                lengths.append(actual_length)
                 data['Caption'][row] = new_caption
 
     data = data.reset_index()       
     data.drop(['index'], axis=1, inplace=True) 
+
+    data['Length'] = lengths
 
     return data
 
@@ -113,6 +123,20 @@ def preprocess_captions(data, word2vec, emoji2vec):
 
 #     return data
 
+def split_dataset(data):
+    """Split dataset in train, validation and test set
+    :param data
+    """
+    train, val, test = np.split(data.sample(frac=1, random_state=RAND_STATE),
+                                    [int(TRAIN_SIZE*len(data)), int((TRAIN_SIZE+VAL_SIZE)*len(data))])
+
+    splits = {'train': train,
+             'val': val,
+             'test': test,
+             'trainval': pd.concat([train, val])
+            }
+    return splits
+
 def main():
     """ MAIN """
     print("Preprocessing Instagram dataset....")
@@ -134,17 +158,23 @@ def main():
     # print("\tPreprocessing images...")
     # data = preprocess_images(data)
 
+    # split the dataset in train, val, test
+    print("\tSplitting the dataset in train, val and test ...")
+    splits = split_dataset(data)
+
     # save preprocessed captions to .csv
     print("\tSaving preprocessed dataset...")
-    data.to_csv(pjoin(PATH_CAPTIONS, "preprocessed_captions.csv"))
+    for split, dataset in splits.items():
 
-    # save preprocessed captions to .json with evaluation format
-    data_dict = dict()
-    for index, row in data.iterrows():
-        data_dict[row[0]] = [row[2]]
+        dataset.to_csv(pjoin(PATH_CAPTIONS, split + ".csv"))
 
-    with open(pjoin(PATH_CAPTIONS, "references.json"), 'w') as fp:
-        json.dump(data_dict, fp, sort_keys=True, indent=4)
+        # save preprocessed captions to .json with evaluation format
+        data_dict = dict()
+        for index, row in dataset.iterrows():
+            data_dict[row[0]] = [row[2]]
+
+        with open(pjoin(PATH_CAPTIONS,  split + ".json"), 'w') as fp:
+            json.dump(data_dict, fp, sort_keys=True, indent=4)
 
 
 # run main 
