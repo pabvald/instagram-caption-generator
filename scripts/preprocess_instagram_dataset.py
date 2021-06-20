@@ -27,6 +27,7 @@ PATH_CAPTIONS = '../data/datasets/instagram'
 PATH_SLANG= '../data/preprocessing/slang.txt'
 PATH_WORD2VEC = '../data/embeddings/word2vec.bin'
 PATH_EMOJI2VEC = '../data/embeddings/emoji2vec.bin'
+PATH_SYNONYMS = '../data/preprocessing/synonyms_en.txt'
 
 # constants
 PUNCTUATIONS = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
@@ -34,6 +35,7 @@ CAPT_MIN_LENGTH = int(args['minimal_length'])
 RAND_STATE = 42
 TRAIN_SIZE = float(args['train_size'])
 VAL_SIZE = float(args['val_size'])
+AUG_N = 2
 # TEST_SIZE = 1 - TRAIN_SIZE - VAL_SIZE
 
 
@@ -67,7 +69,7 @@ def preprocess_captions(data, word2vec, emoji2vec):
     lengths = []
 
     for row, caption in enumerate(data['Caption']):
-        if type(caption)!=str or len(caption.split()) < CAPT_MIN_LENGTH:
+        if type(caption) != str or len(caption.split()) < CAPT_MIN_LENGTH:
             data.drop(row, axis=0, inplace=True)
         else:
             # slang translation
@@ -137,6 +139,59 @@ def split_dataset(data):
             }
     return splits
 
+# Sample n random words and replace them on their synonyms
+def _augment_sentence(sentence, n, synonyms):
+    new_sent = sentence.copy()
+
+    for i in range(n):
+        if i > len(sentence):
+            break
+
+        idx = np.random.randint(len(new_sent))
+        word = new_sent[idx]
+
+        for syn_set in synonyms:
+            if word in syn_set:
+                new_word = np.random.choice([syn for syn in syn_set if syn != word])
+                new_sent[idx] = new_word
+
+    return new_sent
+
+def _get_synonyms(path):
+    with open(path) as f:
+        syn = f.read().split('\n')
+        synonyms = []
+        for line in syn:
+            syns = [w.strip() for w in line.split(',')]
+            synonyms.append(syns)
+    return synonyms
+
+def augment_captions(data, synfile, caption_number = 1):
+    """ Augment captions by synonyms replacement
+        :param data
+        :param synfile: Path to the file containing synonyms
+        :param caption_number: Number of generated captions per image
+        :param aug_n: Number of words to be replaced on their synonyms
+    """
+    synonyms = _get_synonyms(synfile)
+    header = 'Caption_{}'.format(caption_number)
+    augmented = {header: []}
+    for caption in data['Caption']:
+        if isinstance(caption, str):
+            caption = caption.strip().split(' ')
+        if not isinstance(caption, list):
+            augmented[header].append(np.nan)
+            continue
+
+        new = _augment_sentence(caption, len(caption), synonyms)
+        augmented[header].append(' '.join(new))
+
+    aug_df = pd.DataFrame.from_dict(augmented)
+    data = pd.concat([data, aug_df], axis=1)
+
+    data.dropna(inplace=True)
+    return data
+
 def main():
     """ MAIN """
     print("Preprocessing Instagram dataset....")
@@ -148,7 +203,7 @@ def main():
 
     # load .csv file containing image locations and captions 
     print("\tLoading captions...")
-    data = pd.read_csv(pjoin(PATH_CAPTIONS, 'captions_csv.csv'))
+    data = pd.read_csv(pjoin(PATH_CAPTIONS, 'captions_csv.csv'))[:1000]
 
     # preprocess the captions
     print("\tPrepocessing captions...")
@@ -157,6 +212,12 @@ def main():
     # preprocess the images
     # print("\tPreprocessing images...")
     # data = preprocess_images(data)
+
+    # Augment captions
+    print("Augmenting the image captions...")
+    data.dropna(inplace=True)
+    for i in range(AUG_N):
+        data = augment_captions(data, PATH_SYNONYMS, i)
 
     # split the dataset in train, val, test
     print("\tSplitting the dataset in train, val and test ...")
