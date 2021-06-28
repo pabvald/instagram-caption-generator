@@ -203,7 +203,7 @@ def main():
 
     # load .csv file containing image locations and captions 
     print("\tLoading captions...")
-    data = pd.read_csv(pjoin(PATH_CAPTIONS, 'captions_csv.csv'))[:1000]
+    data = pd.read_csv(pjoin(PATH_CAPTIONS, 'preprocessed.csv'))
 
     # preprocess the captions
     print("\tPrepocessing captions...")
@@ -240,4 +240,3 @@ def main():
 
 # run main 
 main()
-
