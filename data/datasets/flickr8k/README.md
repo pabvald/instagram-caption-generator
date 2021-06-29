@@ -1,0 +1,1 @@
+Dataset available in https://www.kaggle.com/adityajn105/flickr8k (last accessed 29-06-2021).

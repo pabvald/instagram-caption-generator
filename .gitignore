@@ -137,8 +137,9 @@ cache/
 
 # datasets
 img/
+.hdf5cle
 
 # embeddings
 GoogleNews-vectors-negative300.bin.gz
 word2vec.bin
-emoji2vec.bin
+emoji2vec.binS

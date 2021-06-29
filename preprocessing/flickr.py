@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import os
 import json
 import argparse
 from os.path import join as pjoin
@@ -9,31 +10,38 @@ from common import create_wordmap, create_input_files
 
 # parse parameters
 parser = argparse.ArgumentParser()
+parser.add_argument("-d", "--dataset", default="flickr8k", choices=["flickr8k", "flickr30k"])
 parser.add_argument("-min", "--minimal-length", default=2)
 parser.add_argument("-max", "--maximal-length", default=50)
 parser.add_argument("-wf", "--min-word-frequency", default=5)
-parser.add_argument("-c", "--captions-per-image", default=1)
+parser.add_argument("-c", "--captions-per-image", default=3)
 args = vars(parser.parse_args())
 
 
-# paths 
-PATH_KAPATHY = '../data/datasets/flickr30k/dataset_flickr30k.json'
-IMG_FOLDER = '../data/datasets/flickr30k/img/flickr30k_images'
-OUTPUT_FOLDER = '../data/datasets/flickr30k'
-
 # constants
 RAND_STATE = 42
+DATASET = args['dataset']
 CAPTIONS_PER_IMAGE = int(args['captions_per_image'])
 MIN_WORD_FREQ = int(args['min_word_frequency'])
 CAPT_MIN_LENGTH = int(args['minimal_length']) 
 CAPT_MAX_LENGTH = int(args['maximal_length'])
+
+# paths 
+DIR = os.path.dirname(__file__)
+PATH_KAPATHY_SPLIT = pjoin(DIR, '../data/datasets', DATASET, 'dataset_' + DATASET + '.json')
+OUTPUT_FOLDER = pjoin(DIR, '../data/datasets', DATASET)
+IMG_FOLDER = pjoin(DIR, '../data/datasets', DATASET, 'img')
+
+if DATASET == 'flickr30k':
+    IMG_FOLDER = pjoin(IMG_FOLDER, 'flickr30k_images')
+
 
 
 def main():
     """ MAIN """
 
     # Read Karpathy JSON
-    with open(PATH_KAPATHY, 'r') as j:
+    with open(PATH_KAPATHY_SPLIT, 'r') as j:
         data = json.load(j)
 
     # Read image paths and captions for each image
@@ -74,14 +82,14 @@ def main():
     assert len(test_image_paths) == len(test_image_captions)
 
     # Create word map, save it to json
-    word_map = create_wordmap("flickr30k", word_freq, MIN_WORD_FREQ, OUTPUT_FOLDER)
+    word_map = create_wordmap(DATASET, word_freq, MIN_WORD_FREQ, OUTPUT_FOLDER)
   
     # Sample captions for each image, save images to HDF5 file, and captions and their lengths to JSON files
     for impaths, imcaps, split in [ (train_image_paths, train_image_captions, 'TRAIN'),
                                    (val_image_paths, val_image_captions, 'VAL'),
                                    (test_image_paths, test_image_captions, 'TEST')]:
 
-        create_input_files("flickr30k", impaths, imcaps, split, word_map, 
+        create_input_files(DATASET, impaths, imcaps, split, word_map, 
                             OUTPUT_FOLDER, CAPTIONS_PER_IMAGE, CAPT_MAX_LENGTH)
 
 if __name__ == '__main__':

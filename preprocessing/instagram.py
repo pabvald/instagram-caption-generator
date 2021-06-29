@@ -30,12 +30,13 @@ parser.add_argument("-v", "--val-size", default=0.2)
 args = vars(parser.parse_args())
 
 # paths
-PATH_ROOT = '../data/datasets/instagram'
-OUTPUT_FOLDER = '../data/datasets/instagram'
-PATH_SLANG= '../data/preprocessing/slang.txt'
-PATH_WORD2VEC = '../data/embeddings/word2vec.bin'
-PATH_EMOJI2VEC = '../data/embeddings/emoji2vec.bin'
-PATH_SYNONYMS = '../data/preprocessing/synonyms_en.txt'
+DIR = os.path.dirname(__file__)
+PATH_ROOT = pjoin(DIR, '../data/datasets/instagram')
+OUTPUT_FOLDER = pjoin(DIR, '../data/datasets/instagram')
+PATH_SLANG = pjoin(DIR, '../data/preprocessing/slang.txt')
+PATH_WORD2VEC = pjoin(DIR, '../data/embeddings/word2vec.bin')
+PATH_EMOJI2VEC = pjoin(DIR, '../data/embeddings/emoji2vec.bin')
+PATH_SYNONYMS = pjoin(DIR, '../data/preprocessing/synonyms_en.txt')
 
 # constants
 RAND_STATE = 42
@@ -54,23 +55,24 @@ def slang_translator(filepath, text):
         :param filepath: path to the .txt files containing the slang translations
         :param text: text to translate
     """
-    text = text.split()
+   
+    with open(filepath, "r") as csv_file:
+        # Reading file as CSV with delimiter as "=", 
+        # so that abbreviation are stored in row[0] and phrases in row[1]
+        data_from_file = csv.reader(csv_file, delimiter="=")
 
-    for j, _str in enumerate(text):       
-        access_mode = "r"  # File Access mode [Read Mode]
-        with open(filepath, access_mode) as csv_file:
-            # Reading file as CSV with delimiter as "=", 
-            # so that abbreviation are stored in row[0] and phrases in row[1]
-            data_from_file = csv.reader(csv_file, delimiter="=")
+        words = text.split()        
+        for j, word in enumerate(text.split()):         
             # Removing Special Characters.
-            _str = re.sub('[^a-zA-Z0-9-_.]', '', _str)
+            word = re.sub('[^a-zA-Z0-9-_.]', '', word)
             for row in data_from_file:
                 # Check if selected word matches short forms[LHS] in text file.
-                if _str.upper() == row[0]:
+                f_word = word.strip().upper()
+                if f_word == row[0]:
                     # If match found replace it with its appropriate phrase in text file.
-                    text[j] = row[1]
-
-    return(' '.join(text))
+                    words[j] = row[1] 
+        
+    return(' '.join(words))
 
 def preprocess_captions(data, word2vec, emoji2vec):
     """ Preprocess the captions: remove non-english or punctuation characters,
@@ -91,7 +93,7 @@ def preprocess_captions(data, word2vec, emoji2vec):
                     new_caption += _char  
                 # create tokens by considering  emojis as separate word
                 elif ord(_char) > 120000 and ord(_char) < 130000:
-                    new_caption += (" " + _char)  
+                    new_caption += (" " + _char + " ")  
             
             # lowercasing
             new_caption = new_caption.lower()
@@ -176,7 +178,7 @@ def _get_synonyms(path):
             synonyms.append(syns)
     return synonyms
 
-def augment_captions(data, synfile, caption_number = 1):
+def augment_caption(data, synfile, caption_number = 1):
     """ Augment captions by synonyms replacement
         :param data
         :param synfile: Path to the file containing synonyms
@@ -220,7 +222,7 @@ def preprocess(data):
 
     # load .csv file containing image locations and captions 
     print("\tLoading captions...")
-    data = pd.read_csv(pjoin(PATH_ROOT, 'original.csv'))
+    data = pd.read_csv(pjoin(PATH_ROOT, 'captions_csv.csv'))
 
     # preprocess the images
     # print("\tPreprocessing images...")
@@ -242,6 +244,7 @@ def main():
     else:
         data = pd.read_csv(pjoin(PATH_ROOT, 'captions_csv.csv'))
         data = preprocess(data)
+        data.to_csv(pjoin(PATH_ROOT, "preprocessed.csv"))
    
     # split the dataset in train, val, test
     print("Splitting the dataset in train, trainval, val and test ...")
@@ -255,16 +258,16 @@ def main():
     test_image_paths = []
     test_image_captions = []
     word_freq = Counter()
+    synonyms = _get_synonyms(PATH_SYNONYMS)
 
     for split, dataset in splits.items():        
         for index, row in dataset.iterrows():
             captions = [] 
             path = pjoin(PATH_ROOT, row[1] + '.jpg')
-            for i in range(CAPTIONS_PER_IMAGE):
-                if i == 0:
-                    caption = row[2]
-                else: 
-                    caption = [] # augment captions
+            for i in range(CAPTIONS_PER_IMAGE):                
+                caption = row[2]
+                if i > 0: 
+                    caption = _augment_sentence(synonyms, len(caption), caption)
                 
                 tokens = caption.split()
                 word_freq.update(tokens)
