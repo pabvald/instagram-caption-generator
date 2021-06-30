@@ -1,38 +1,39 @@
 import torch
-from torch.utils.data import Dataset
 import json
-import os
 import h5py
-
+from os.path import join as pjoin
+from torch.utils.data import Dataset
 
 class CaptionDataset(Dataset):
     """
     A PyTorch Dataset class to be used in a PyTorch DataLoader to create batches.
     """
 
-    def __init__(self, data_folder, data_name, split, transform=None):
+    def __init__(self, data_folder, dataset, split, transform=None):
         """
         :param data_folder: folder where data files are stored
-        :param data_name: base name of processed datasets
+        :param dataset: name of the dataset. Choices: 'flickr8k', 'flickr30k', 'instagram'.
         :param split: split, one of 'TRAIN', 'VAL', or 'TEST'
         :param transform: image transform pipeline
         """
+        assert dataset in {'flickr8k', 'flickr30k', 'instagram'}        
+        assert split in {'TRAIN', 'VAL', 'TEST'}
+
         self.split = split
-        assert self.split in {'TRAIN', 'VAL', 'TEST'}
 
         # Open hdf5 file where images are stored
-        self.h = h5py.File(os.path.join(data_folder, self.split + '_IMAGES_' + data_name + '.hdf5'), 'r')
+        self.h = h5py.File(pjoin(data_folder, self.split + '_IMAGES_' + dataset + '.hdf5'), 'r')
         self.imgs = self.h['images']
 
         # Captions per image
         self.cpi = self.h.attrs['captions_per_image']
 
         # Load encoded captions (completely into memory)
-        with open(os.path.join(data_folder, self.split + '_CAPTIONS_' + data_name + '.json'), 'r') as j:
+        with open(pjoin(data_folder, self.split + '_CAPTIONS_' + dataset + '.json'), 'r') as j:
             self.captions = json.load(j)
 
         # Load caption lengths (completely into memory)
-        with open(os.path.join(data_folder, self.split + '_CAPLENS_' + data_name + '.json'), 'r') as j:
+        with open(pjoin(data_folder, self.split + '_CAPLENS_' + dataset + '.json'), 'r') as j:
             self.caplens = json.load(j)
 
         # PyTorch transformation pipeline for the image (normalizing, etc.)
@@ -51,7 +52,7 @@ class CaptionDataset(Dataset):
 
         caplen = torch.LongTensor([self.caplens[i]])
 
-        if self.split is 'TRAIN':
+        if self.split == 'TRAIN':
             return img, caption, caplen
         else:
             # For validation of testing, also return all 'captions_per_image' captions to find BLEU-4 score
