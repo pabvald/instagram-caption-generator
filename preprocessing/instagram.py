@@ -1,17 +1,16 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import os 
 import re
 import csv
 import argparse
 import numpy as np
 import pandas as pd
 from collections import Counter
-from os.path import join as pjoin
 from gensim.models import KeyedVectors
-from common import create_wordmap, create_input_files
-
+from utils import create_wordmap
+from preprocessing.common import create_input_files
+from config import *
 
 #import pytesseract as tess
 #tess.pytesseract.tesseract_cmd = r'D:\Tesseract-OCR\tesseract.exe'
@@ -34,8 +33,6 @@ DIR = os.path.dirname(__file__)
 PATH_ROOT = pjoin(DIR, '../data/datasets/instagram')
 OUTPUT_FOLDER = pjoin(DIR, '../data/datasets/instagram')
 PATH_SLANG = pjoin(DIR, '../data/preprocessing/slang.txt')
-PATH_WORD2VEC = pjoin(DIR, '../data/embeddings/word2vec.bin')
-PATH_EMOJI2VEC = pjoin(DIR, '../data/embeddings/emoji2vec.bin')
 PATH_SYNONYMS = pjoin(DIR, '../data/preprocessing/synonyms_en.txt')
 
 # constants

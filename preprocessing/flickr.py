@@ -6,7 +6,8 @@ import json
 import argparse
 from os.path import join as pjoin
 from collections import Counter
-from common import create_wordmap, create_input_files
+from preprocessing.common import create_input_files
+from utils import create_wordmap
 
 # parse parameters
 parser = argparse.ArgumentParser()

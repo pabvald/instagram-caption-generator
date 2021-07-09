@@ -5,44 +5,6 @@ from PIL import Image
 from tqdm import tqdm
 from os.path import join as pjoin
 from random import seed, choice, sample
-from collections import Counter
-
-
-def get_word_freqs(captions):
-    """ Calculates word frequencies
-        :param captions: list of captions
-    """
-    word_freqs = Counter()
-    for caption in captions:
-        word_freqs.update(list(filter(None, caption.split(' '))))
-    return word_freqs
-
-
-def create_wordmap(dataset, word_freq, output_folder, min_word_freq=None):
-    """ Create a word map from a dictionary of the word frequencies and save it.
-        :param dataset: name of the dataset 
-        :param word_freq: dictionary of word frequencies
-        :param min_word_freq: minimum frequency of a word to be included in the map. If None, 95% of the vocabulary words will be included
-        :param output_folder
-    """
-
-    if min_word_freq == None:  # Take 95% most common words from the vocabulary
-        words_sorted = [word for word, freq in sorted(word_freq.items(), key=lambda item: item[1], reverse=True)]
-        words = words_sorted[:int(0.95 * len(words_sorted))]  # The rest 5% set to '<unk>'
-    else:
-        words = [w for w in word_freq.keys() if word_freq[w] > min_word_freq]
-
-    word_map = {k: v + 1 for v, k in enumerate(words)}
-    word_map['<unk>'] = len(word_map) + 1
-    word_map['<start>'] = len(word_map) + 1
-    word_map['<end>'] = len(word_map) + 1
-    word_map['<pad>'] = 0
-
-    with open(pjoin(output_folder, 'WORDMAP_' + dataset + '.json'), 'w') as j:
-        json.dump(word_map, j)
-
-    return word_map
-
 
 def encode_caption(caption, word_map, capt_max_length):
     """Encode a caption given a word mapping 
