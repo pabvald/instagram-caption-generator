@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+
+import os
 import time
 import torch.backends.cudnn as cudnn
 import torch.optim
@@ -5,7 +8,7 @@ import torch.utils.data
 import torchvision.transforms as transforms
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence
-from image_captioning_using_flickr.model import Encoder, DecoderWithAttention
+from nn_modules import Encoder, DecoderWithAttention
 from dataloader import *
 from utils import *
 from nltk.translate.bleu_score import corpus_bleu
@@ -22,11 +25,12 @@ attention_dim = 512  # dimension of attention linear layers
 decoder_dim = 512  # dimension of decoder RNN
 dropout = 0.5
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # sets device for model and PyTorch tensors
+os.environ['TORCH_HOME'] = 'pretrained' 
 cudnn.benchmark = True  # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
 
 # Training parameters
 start_epoch = 0
-epochs = 120  # number of epochs to train for (if early stopping is not triggered)
+epochs = 1  # number of epochs to train for (if early stopping is not triggered)
 epochs_since_improvement = 0  # keeps track of number of epochs since there's been an improvement in validation BLEU
 batch_size = 32
 workers = 1  # for data-loading; right now, only 1 works with h5py
@@ -105,6 +109,7 @@ def main():
 
     # Epochs
     for epoch in range(start_epoch, epochs):
+        print('Epoch: {}'.format(epoch))
 
         # Decay learning rate if there is no improvement for 8 consecutive epochs, and terminate training after 20
         if epochs_since_improvement == 20:

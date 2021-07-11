@@ -53,7 +53,7 @@ def accuracy(scores, targets, k):
     correct_total = correct.view(-1).float().sum()  # 0D tensor
     return correct_total.item() * (100.0 / batch_size)
 
-def save_checkpoint(data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer, decoder_optimizer,
+def save_checkpoint(save_dir, data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer, decoder_optimizer,
                     bleu4, is_best):
     """
     Saves model checkpoint.
@@ -78,7 +78,7 @@ def save_checkpoint(data_name, epoch, epochs_since_improvement, encoder, decoder
     torch.save(state, filename)
     # If this checkpoint is the best so far, store a copy so it doesn't get overwritten by a worse checkpoint
     if is_best:
-        torch.save(state, 'BEST_' + filename)
+        torch.save(state, pjoin(save_dir,'BEST_' + filename))
 
 def clip_gradient(optimizer, grad_clip):
     """
@@ -149,7 +149,7 @@ def load_embeddings(word_emb_file, emoji_emb_file, word_map=None, binary = True)
     emb_dim = wv.vector_size
 
     if word_map == None:
-        word_map = {k: v + 1 for emb in [wv.vocab.keys(), ev.vocab.keys()] for v, k in enumerate(emb)}
+        word_map = {k: v + 1 for emb in [wv.key_to_index.keys(), ev.key_to_index.keys()] for v, k in enumerate(emb)}
         word_map['<unk>'] = len(word_map) + 1
         word_map['<start>'] = len(word_map) + 1
         word_map['<end>'] = len(word_map) + 1
@@ -164,9 +164,9 @@ def load_embeddings(word_emb_file, emoji_emb_file, word_map=None, binary = True)
     # Iterate through the vector pairs
     for emb_word in vocab:
 
-        if emb_word in wv.vocab:
+        if emb_word in wv.key_to_index:
             embeddings[word_map[emb_word]] = torch.FloatTensor(wv.get_vector(emb_word))
-        elif emb_word in ev.vocab:
+        elif emb_word in ev.key_to_index:
             embeddings[word_map[emb_word]] = torch.FloatTensor(ev.get_vector(emb_word))
 
     return word_map, embeddings, emb_dim #, wv, ev # wv and ev are for debugging

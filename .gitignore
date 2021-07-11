@@ -134,6 +134,7 @@ dmypy.json
 *Zone.Identifier
 tmp/
 cache/
+condor/
 
 # datasets
 img/
@@ -142,4 +143,4 @@ img/
 # embeddings
 GoogleNews-vectors-negative300.bin.gz
 word2vec.bin
-emoji2vec.binS
+emoji2vec.bin
