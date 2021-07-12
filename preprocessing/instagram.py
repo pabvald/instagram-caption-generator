@@ -8,9 +8,10 @@ import numpy as np
 import pandas as pd
 from collections import Counter
 from gensim.models import KeyedVectors
-from utils import create_wordmap
+from utils import create_wordmap, load_embeddings
 from preprocessing.common import create_input_files
 from config import *
+import torch
 
 #import pytesseract as tess
 #tess.pytesseract.tesseract_cmd = r'D:\Tesseract-OCR\tesseract.exe'
@@ -295,6 +296,10 @@ def main():
         
         create_input_files("instagram", impaths, imcaps, split, word_map, 
                             OUTPUT_FOLDER, CAPTIONS_PER_IMAGE, CAPT_MAX_LENGTH)
+
+    # Create embeddings
+    _, embeddings, emb_dim = load_embeddings(PATH_WORD2VEC, PATH_EMOJI2VEC, word_map=word_map)
+    torch.save(embeddings, pjoin(PATH_FLICKR, 'EMBEDDINGS_instagram.pt'))
 
 if __name__ == '__main__':
     main()

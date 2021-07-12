@@ -7,7 +7,9 @@ import argparse
 from os.path import join as pjoin
 from collections import Counter
 from preprocessing.common import create_input_files
-from utils import create_wordmap
+from utils import create_wordmap, load_embeddings
+import torch
+from config import *
 
 # parse parameters
 parser = argparse.ArgumentParser()
@@ -35,8 +37,6 @@ IMG_FOLDER = pjoin(DIR, '../data/datasets', DATASET, 'img')
 
 if DATASET == 'flickr30k':
     IMG_FOLDER = pjoin(IMG_FOLDER, 'flickr30k_images')
-
-
 
 def main():
     """ MAIN """
@@ -92,6 +92,10 @@ def main():
 
         create_input_files(DATASET, impaths, imcaps, split, word_map, 
                             OUTPUT_FOLDER, CAPTIONS_PER_IMAGE, CAPT_MAX_LENGTH)
+
+    # Create embeddings
+    _, embeddings, emb_dim = load_embeddings(PATH_WORD2VEC, PATH_EMOJI2VEC, word_map=word_map)
+    torch.save(embeddings, pjoin(PATH_FLICKR, 'EMBEDDINGS_{}.pt'.format(DATASET)))
 
 if __name__ == '__main__':
     main()
