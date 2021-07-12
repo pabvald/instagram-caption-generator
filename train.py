@@ -30,7 +30,7 @@ cudnn.benchmark = True  # set to true only if inputs to model are fixed size; ot
 
 # Training parameters
 start_epoch = 0
-epochs = 120  # number of epochs to train for (if early stopping is not triggered)
+epochs = 9  # number of epochs to train for (if early stopping is not triggered)
 epochs_since_improvement = 0  # keeps track of number of epochs since there's been an improvement in validation BLEU
 batch_size = 32
 workers = 1  # for data-loading; right now, only 1 works with h5py
@@ -110,6 +110,11 @@ def main():
         CaptionDataset(data_folder, data_name, 'VAL', transform=transforms.Compose([normalize])),
         batch_size=batch_size, shuffle=True, num_workers=workers, pin_memory=True)
 
+    train_loss_history = []
+    train_top5acc_history = []
+    val_loss_history = []
+    val_top5acc_history = []
+    val_blau4_history = []
     # Epochs
     for epoch in range(start_epoch, epochs):
         print('Epoch: {}'.format(epoch))
@@ -123,7 +128,7 @@ def main():
                 adjust_learning_rate(encoder_optimizer, 0.8)
 
         # One epoch's training
-        train(train_loader=train_loader,
+        train_loss, train_top5acc = train(train_loader=train_loader,
               encoder=encoder,
               decoder=decoder,
               criterion=criterion,
@@ -132,10 +137,17 @@ def main():
               epoch=epoch)
 
         # One epoch's validation
-        recent_bleu4 = validate(val_loader=val_loader,
+        val_loss, val_top5acc, recent_bleu4 = validate(val_loader=val_loader,
                                 encoder=encoder,
                                 decoder=decoder,
                                 criterion=criterion)
+
+        # Update the histories
+        train_loss_history.append(train_loss)
+        train_top5acc_history.append(train_top5acc)
+        val_loss_history.append(val_loss)
+        val_top5acc_history.append(val_top5acc)
+        val_blau4_history.append(recent_bleu4)
 
         # Check if there was an improvement
         is_best = recent_bleu4 > best_bleu4
@@ -148,7 +160,8 @@ def main():
 
         # Save checkpoint
         save_checkpoint(os.path.join(PATH_MODELS, data_name), data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
-                        decoder_optimizer, recent_bleu4, is_best)
+                        decoder_optimizer, recent_bleu4, train_loss_history, train_top5acc_history,
+                        val_loss_history, val_top5acc_history, val_blau4_history, is_best)
 
 
 def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, epoch):
@@ -236,7 +249,7 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
                                                                           batch_time=batch_time,
                                                                           data_time=data_time, loss=losses,
                                                                           top5=top5accs))
-
+    return losses, top5accs
 
 def validate(val_loader, encoder, decoder, criterion):
     """
@@ -340,7 +353,7 @@ def validate(val_loader, encoder, decoder, criterion):
                 top5=top5accs,
                 bleu=bleu4))
 
-    return bleu4
+    return losses, top5accs, bleu4
 
 
 if __name__ == '__main__':

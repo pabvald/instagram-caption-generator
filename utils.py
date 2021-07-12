@@ -6,6 +6,7 @@ import torch
 from gensim.models import KeyedVectors
 from config import *
 
+
 class AverageMeter(object):
     """
     Keeps track of most recent, average, sum, and count of a metric.
@@ -25,6 +26,7 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
+
 
 def adjust_learning_rate(optimizer, shrink_factor):
     """
@@ -54,8 +56,11 @@ def accuracy(scores, targets, k):
     correct_total = correct.view(-1).float().sum()  # 0D tensor
     return correct_total.item() * (100.0 / batch_size)
 
-def save_checkpoint(save_dir, data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer, decoder_optimizer,
-                    bleu4, is_best):
+
+def save_checkpoint(save_dir, data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
+                    decoder_optimizer,
+                    bleu4, train_loss_history, train_top5acc_history,
+                    val_loss_history, val_top5acc_history, val_blau4_history, is_best):
     """
     Saves model checkpoint.
     :param data_name: base name of processed dataset
@@ -74,12 +79,20 @@ def save_checkpoint(save_dir, data_name, epoch, epochs_since_improvement, encode
              'encoder': encoder,
              'decoder': decoder,
              'encoder_optimizer': encoder_optimizer,
-             'decoder_optimizer': decoder_optimizer}
+             'decoder_optimizer': decoder_optimizer,
+             'train_loss_history': train_loss_history,
+             'train_top5acc_history': train_top5acc_history,
+             'val_loss_history': val_loss_history,
+             'val_top5acc_history': val_top5acc_history,
+             'val_blau4_history': val_blau4_history,
+             'bleu4_history': bleu4_history,
+             }
     filename = 'checkpoint_' + data_name + '.pth.tar'
-    torch.save(state, filename)
+    torch.save(state, pjoin(save_dir, filename))
     # If this checkpoint is the best so far, store a copy so it doesn't get overwritten by a worse checkpoint
     if is_best:
-        torch.save(state, pjoin(save_dir,'BEST_' + filename))
+        torch.save(state, pjoin(save_dir, 'BEST_' + filename))
+
 
 def clip_gradient(optimizer, grad_clip):
     """
@@ -91,6 +104,7 @@ def clip_gradient(optimizer, grad_clip):
         for param in group['params']:
             if param.grad is not None:
                 param.grad.data.clamp_(-grad_clip, grad_clip)
+
 
 def get_word_freqs(captions):
     """ Calculates word frequencies
@@ -127,6 +141,7 @@ def create_wordmap(dataset, word_freq, output_folder, min_word_freq=None):
 
     return word_map
 
+
 def _init_embedding(embeddings):
     """
     Fills embedding tensor with values from the uniform distribution.
@@ -135,7 +150,8 @@ def _init_embedding(embeddings):
     bias = np.sqrt(3.0 / embeddings.size(1))
     torch.nn.init.uniform_(embeddings, -bias, bias)
 
-def load_embeddings(word_emb_file, emoji_emb_file, word_map=None, binary = True):
+
+def load_embeddings(word_emb_file, emoji_emb_file, word_map=None, binary=True):
     """
     Creates an embedding tensor for the specified word map, for loading into the model.
     :param word_emb_file: file containing embeddings (stored in GloVe format)
@@ -185,5 +201,3 @@ def load_embeddings(word_emb_file, emoji_emb_file, word_map=None, binary = True)
 # wordmap, embeddings, emb_dim = load_embeddings(PATH_WORD2VEC, PATH_EMOJI2VEC, word_map=wordmap)
 # torch.save(embeddings, pjoin(PATH_FLICKR, 'EMBEDDINGS_{}.pt'.format(dataset)))
 # print('Done')
-
-
