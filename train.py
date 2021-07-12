@@ -20,7 +20,7 @@ data_folder = PATH_FLICKR  # folder with data files saved by create_input_files.
 data_name = 'flickr8k'  # base name shared by data files
 
 # Model parameters
-emb_dim = 512  # dimension of word embeddings
+emb_dim = 300  # dimension of word embeddings
 attention_dim = 512  # dimension of attention linear layers
 decoder_dim = 512  # dimension of decoder RNN
 dropout = 0.5
@@ -30,7 +30,7 @@ cudnn.benchmark = True  # set to true only if inputs to model are fixed size; ot
 
 # Training parameters
 start_epoch = 0
-epochs = 1  # number of epochs to train for (if early stopping is not triggered)
+epochs = 120  # number of epochs to train for (if early stopping is not triggered)
 epochs_since_improvement = 0  # keeps track of number of epochs since there's been an improvement in validation BLEU
 batch_size = 32
 workers = 1  # for data-loading; right now, only 1 works with h5py
@@ -54,6 +54,7 @@ def main():
 
     # Read the word map
     # word_map, embeddings, emb_dim = load_embeddings(PATH_WORD2VEC, PATH_EMOJI2VEC)
+    # embeddings = torch.load(os.path.join(data_folder, 'EMBEDDINGS_' + data_name + '.pt')) # DEBUGGING
 
     word_map_file = os.path.join(data_folder, 'WORDMAP_' + data_name + '.json')
     with open(word_map_file, 'r') as j:
@@ -146,7 +147,7 @@ def main():
             epochs_since_improvement = 0
 
         # Save checkpoint
-        save_checkpoint(data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
+        save_checkpoint('models', data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
                         decoder_optimizer, recent_bleu4, is_best)
 
 
@@ -191,8 +192,8 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
 
         # Remove timesteps that we didn't decode at, or are pads
         # pack_padded_sequence is an easy trick to do this
-        scores, _ = pack_padded_sequence(scores, decode_lengths, batch_first=True)
-        targets, _ = pack_padded_sequence(targets, decode_lengths, batch_first=True)
+        scores = pack_padded_sequence(scores, decode_lengths, batch_first=True).data
+        targets = pack_padded_sequence(targets, decode_lengths, batch_first=True).data
 
         # Calculate loss
         loss = criterion(scores, targets)
@@ -282,8 +283,8 @@ def validate(val_loader, encoder, decoder, criterion):
             # Remove timesteps that we didn't decode at, or are pads
             # pack_padded_sequence is an easy trick to do this
             scores_copy = scores.clone()
-            scores, _ = pack_padded_sequence(scores, decode_lengths, batch_first=True)
-            targets, _ = pack_padded_sequence(targets, decode_lengths, batch_first=True)
+            scores = pack_padded_sequence(scores, decode_lengths, batch_first=True).data
+            targets = pack_padded_sequence(targets, decode_lengths, batch_first=True).data
 
             # Calculate loss
             loss = criterion(scores, targets)
@@ -320,7 +321,7 @@ def validate(val_loader, encoder, decoder, criterion):
                 references.append(img_captions)
 
             # Hypotheses
-            _, preds = torch.max(scores_copy, dim=2)
+            preds, _ = torch.max(scores_copy, dim=2)
             preds = preds.tolist()
             temp_preds = list()
             for j, p in enumerate(preds):

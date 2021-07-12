@@ -11,7 +11,7 @@ transfer_input_files = ./
 transfer_output_files   = models
 request_GPUs = 1
 request_CPUs = 1
-request_memory = 20G
+request_memory = 16G
 requirements = UidDomain == "cs.uni-saarland.de"
 +WantGPUHomeMounted = true
 queue 1

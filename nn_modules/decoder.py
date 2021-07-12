@@ -110,7 +110,7 @@ class DecoderWithAttention(nn.Module):
         # So, decoding lengths are actual lengths - 1
         decode_lengths = (caption_lengths - 1).tolist()
 
-        # Create tensors to hold word predicion scores and alphas
+        # Create tensors to hold word prediction scores and alphas
         predictions = torch.zeros(batch_size, max(decode_lengths), vocab_size).to(device)
         alphas = torch.zeros(batch_size, max(decode_lengths), num_pixels).to(device)
 
