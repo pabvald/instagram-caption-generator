@@ -52,11 +52,12 @@ def main():
 
     global best_bleu4, epochs_since_improvement, checkpoint, start_epoch, fine_tune_encoder, data_name, word_map
 
-    # Read word map
-    word_map, embeddings, emb_dim = load_embeddings(PATH_WORD2VEC, PATH_EMOJI2VEC)
-    # word_map_file = os.path.join(data_folder, 'WORDMAP_' + data_name + '.json')
-    # with open(word_map_file, 'r') as j:
-    #     word_map = json.load(j)
+    # Read the word map
+    # word_map, embeddings, emb_dim = load_embeddings(PATH_WORD2VEC, PATH_EMOJI2VEC)
+
+    word_map_file = os.path.join(data_folder, 'WORDMAP_' + data_name + '.json')
+    with open(word_map_file, 'r') as j:
+        word_map = json.load(j)
 
     # Initialize / load checkpoint
     if checkpoint is None:
@@ -66,6 +67,7 @@ def main():
                                        vocab_size=len(word_map),
                                        dropout=dropout)
 
+        embeddings = torch.load(os.path.join(data_folder, 'EMBEDDINGS_'+data_name + '.pt'))
         decoder.load_pretrained_embeddings(embeddings)
         decoder.fine_tune_embeddings(fine_tune_embeddings)
 

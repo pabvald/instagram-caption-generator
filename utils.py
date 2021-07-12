@@ -4,6 +4,7 @@ from collections import Counter
 import numpy as np
 import torch
 from gensim.models import KeyedVectors
+from config import *
 
 class AverageMeter(object):
     """
@@ -139,7 +140,8 @@ def load_embeddings(word_emb_file, emoji_emb_file, word_map=None, binary = True)
     Creates an embedding tensor for the specified word map, for loading into the model.
     :param word_emb_file: file containing embeddings (stored in GloVe format)
     :param word_map: word map. If None, it will be comprised from the embeddings vocabulary
-    :return: embeddings in the same order as the words in the word map, dimension of embeddings
+    :return: embeddings in the same order as the words in the word map, dimension of embeddings, a wordmap in case
+            it wasn't supplied.
     """
 
     print("\tLoading embeddings...")
@@ -169,30 +171,19 @@ def load_embeddings(word_emb_file, emoji_emb_file, word_map=None, binary = True)
         elif emb_word in ev.key_to_index:
             embeddings[word_map[emb_word]] = torch.FloatTensor(ev.get_vector(emb_word))
 
-    return word_map, embeddings, emb_dim #, wv, ev # wv and ev are for debugging
+    return word_map, embeddings, emb_dim
 
-# DEBUGGING
-# import os
-# from os.path import join as pjoin
-# import pandas as pd
+# DUMPING THE EMBEDDINGS. Comment after done!
+# dataset ='flickr8k'
 #
-# DIR = os.path.dirname(__file__)
-# PATH_WORD2VEC = pjoin(DIR, '../data/embeddings/word2vec.bin')
-# PATH_EMOJI2VEC = pjoin(DIR, '../data/embeddings/emoji2vec.bin')
+# PATH_WORD2VEC = pjoin(DIR, 'data/embeddings/word2vec.bin')
+# PATH_EMOJI2VEC = pjoin(DIR, 'data/embeddings/emoji2vec.bin')
 #
-# data = pd.read_csv(pjoin('../data/datasets/instagram/preprocessed.csv'))
+# with open(pjoin(PATH_FLICKR, 'WORDMAP_{}.json'.format(dataset)), 'r') as j:
+#     wordmap = json.load(j)
 #
-# word_freqs = common.get_word_freqs(data['Caption'])
-# wordmap = common.create_wordmap('instagram', word_freqs, '', min_word_freq=0)
-# wordmap, embeddings, emb_dim = load_embeddings(PATH_WORD2VEC, PATH_EMOJI2VEC, word_map=None)
+# wordmap, embeddings, emb_dim = load_embeddings(PATH_WORD2VEC, PATH_EMOJI2VEC, word_map=wordmap)
+# torch.save(embeddings, pjoin(PATH_FLICKR, 'EMBEDDINGS_{}.pt'.format(dataset)))
 # print('Done')
-# print(embeddings[:10])
-# print(wordmap)
-# print(len(embeddings))
-# print(len(wordmap))
-# print(wv.get_vector('cat'))
-# print(embeddings[wordmap['cat']])
-#
-# print(ev.get_vector('💎'))
-# print(embeddings[wordmap['💎']])
+
 
