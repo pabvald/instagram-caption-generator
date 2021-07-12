@@ -1,10 +1,16 @@
+
+"""
+    Author: Sagar Vinodababu (@sgrvinod)
+    Source: https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Image-Captioning
+"""
+
 import json
-from os.path import join as pjoin
-from collections import Counter
-import numpy as np
 import torch
-from gensim.models import KeyedVectors
+import numpy as np
 from config import *
+from collections import Counter
+from os.path import join as pjoin
+from gensim.models import KeyedVectors
 
 
 class AverageMeter(object):
@@ -60,7 +66,7 @@ def accuracy(scores, targets, k):
 def save_checkpoint(save_dir, data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
                     decoder_optimizer,
                     bleu4, train_loss_history, train_top5acc_history,
-                    val_loss_history, val_top5acc_history, val_blau4_history, is_best):
+                    val_loss_history, val_top5acc_history, val_bleu4_history, is_best):
     """
     Saves model checkpoint.
     :param data_name: base name of processed dataset
@@ -84,8 +90,7 @@ def save_checkpoint(save_dir, data_name, epoch, epochs_since_improvement, encode
              'train_top5acc_history': train_top5acc_history,
              'val_loss_history': val_loss_history,
              'val_top5acc_history': val_top5acc_history,
-             'val_blau4_history': val_blau4_history,
-             'bleu4_history': bleu4_history,
+             'val_blau4_history': val_bleu4_history
              }
     filename = 'checkpoint_' + data_name + '.pth.tar'
     torch.save(state, pjoin(save_dir, filename))
@@ -141,7 +146,24 @@ def create_wordmap(dataset, word_freq, output_folder, min_word_freq=None):
 
     return word_map
 
+def encode_caption(caption, word_map, capt_max_length):
+    """Encode a caption given a word mapping 
+        :param caption: list of tokens
+        :param word_map: word mapping
+        :param capt_max_length: maximum length of a caption
+    """
+    return [word_map['<start>']] + \
+           [word_map.get(word, word_map['<unk>']) for word in caption] + \
+           [word_map['<end>']] + [word_map['<pad>']] * (capt_max_length - len(caption))
 
+def decode_caption(caption, word_map, capt_max_length): 
+    """ Decode a caption given a word mapping
+        :param caption: list of word codes
+        :param word_map: word mapping
+        :param capt_max_length: maximum length of a caption 
+    """
+    raise NotImplementedError
+    
 def _init_embedding(embeddings):
     """
     Fills embedding tensor with values from the uniform distribution.
@@ -151,7 +173,7 @@ def _init_embedding(embeddings):
     torch.nn.init.uniform_(embeddings, -bias, bias)
 
 
-def load_embeddings(word_emb_file, emoji_emb_file, word_map=None, binary=True):
+def load_embeddings(word_map=None, binary=True):
     """
     Creates an embedding tensor for the specified word map, for loading into the model.
     :param word_emb_file: file containing embeddings (stored in GloVe format)
@@ -161,8 +183,8 @@ def load_embeddings(word_emb_file, emoji_emb_file, word_map=None, binary=True):
     """
 
     print("\tLoading embeddings...")
-    wv = KeyedVectors.load_word2vec_format(word_emb_file, binary=binary)
-    ev = KeyedVectors.load_word2vec_format(emoji_emb_file, binary=binary)
+    wv = KeyedVectors.load_word2vec_format(PATH_WORD2VEC, binary=binary)
+    ev = KeyedVectors.load_word2vec_format(PATH_EMOJI2VEC, binary=binary)
     # Find embedding dimension
     emb_dim = wv.vector_size
 

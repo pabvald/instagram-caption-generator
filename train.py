@@ -1,36 +1,53 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+    Author: Sagar Vinodababu (@sgrvinod)
+    Source: https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Image-Captioning
+"""
 
 import os
 import time
-import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
+import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
+
 from torch import nn
+from utils import *
+from config import *
+from dataloader import CaptionDataset
 from torch.nn.utils.rnn import pack_padded_sequence
 from nn_modules import Encoder, DecoderWithAttention
-from dataloader import *
-from utils import *
 from nltk.translate.bleu_score import corpus_bleu
-from config import *
-from utils import load_embeddings
 
+
+#=================
+# Configuration
+#=================
+os.environ['TORCH_HOME'] = 'pretrained' 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # sets device for model and PyTorch tensors
+
+#=================
 # Data parameters
+#=================
 data_folder = PATH_FLICKR  # folder with data files saved by create_input_files.py
 data_name = 'flickr8k'  # base name shared by data files
 
+#=================
 # Model parameters
+#=================
 emb_dim = 300  # dimension of word embeddings
 attention_dim = 512  # dimension of attention linear layers
 decoder_dim = 512  # dimension of decoder RNN
 dropout = 0.5
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # sets device for model and PyTorch tensors
-os.environ['TORCH_HOME'] = 'pretrained' 
 cudnn.benchmark = True  # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
 
+#====================
 # Training parameters
+#====================
 start_epoch = 0
-epochs = 9  # number of epochs to train for (if early stopping is not triggered)
+epochs = 3  # number of epochs to train for (if early stopping is not triggered)
 epochs_since_improvement = 0  # keeps track of number of epochs since there's been an improvement in validation BLEU
 batch_size = 32
 workers = 1  # for data-loading; right now, only 1 works with h5py
@@ -68,7 +85,7 @@ def main():
                                        vocab_size=len(word_map),
                                        dropout=dropout)
 
-        embeddings = torch.load(os.path.join(data_folder, 'EMBEDDINGS_'+data_name + '.pt'))
+        embeddings = torch.load(os.path.join(data_folder, 'EMBEDDINGS_' + data_name + '.pt'))
         decoder.load_pretrained_embeddings(embeddings)
         decoder.fine_tune_embeddings(fine_tune_embeddings)
 
@@ -88,6 +105,7 @@ def main():
         decoder_optimizer = checkpoint['decoder_optimizer']
         encoder = checkpoint['encoder']
         encoder_optimizer = checkpoint['encoder_optimizer']
+
         if fine_tune_encoder is True and encoder_optimizer is None:
             encoder.fine_tune(fine_tune_encoder)
             encoder_optimizer = torch.optim.Adam(params=filter(lambda p: p.requires_grad, encoder.parameters()),
@@ -103,18 +121,22 @@ def main():
     # Custom dataloaders
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
+
     train_loader = torch.utils.data.DataLoader(
         CaptionDataset(data_folder, data_name, 'TRAIN', transform=transforms.Compose([normalize])),
         batch_size=batch_size, shuffle=True, num_workers=workers, pin_memory=True)
+
     val_loader = torch.utils.data.DataLoader(
         CaptionDataset(data_folder, data_name, 'VAL', transform=transforms.Compose([normalize])),
         batch_size=batch_size, shuffle=True, num_workers=workers, pin_memory=True)
 
+    # Histories
     train_loss_history = []
     train_top5acc_history = []
     val_loss_history = []
     val_top5acc_history = []
-    val_blau4_history = []
+    val_bleu4_history = []
+
     # Epochs
     for epoch in range(start_epoch, epochs):
         print('Epoch: {}'.format(epoch))
@@ -143,11 +165,11 @@ def main():
                                 criterion=criterion)
 
         # Update the histories
-        train_loss_history.append(train_loss)
-        train_top5acc_history.append(train_top5acc)
-        val_loss_history.append(val_loss)
-        val_top5acc_history.append(val_top5acc)
-        val_blau4_history.append(recent_bleu4)
+        train_loss_history.append(train_loss.avg)
+        train_top5acc_history.append(train_top5acc.avg)
+        val_loss_history.append(val_loss.avg)
+        val_top5acc_history.append(val_top5acc.avg)
+        val_bleu4_history.append(recent_bleu4)
 
         # Check if there was an improvement
         is_best = recent_bleu4 > best_bleu4
@@ -158,10 +180,18 @@ def main():
         else:
             epochs_since_improvement = 0
 
+         # Print histories 
+        print("train_loss_history", train_loss_history)
+        print("train_top5acc_history", train_top5acc_history)
+        print("val_loss_history", val_loss_history)
+        print("val_top5acc_history", val_top5acc_history)
+        print("val_bleu4_history", val_bleu4_history)
+
         # Save checkpoint
         save_checkpoint(os.path.join(PATH_MODELS, data_name), data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
                         decoder_optimizer, recent_bleu4, train_loss_history, train_top5acc_history,
-                        val_loss_history, val_top5acc_history, val_blau4_history, is_best)
+                        val_loss_history, val_top5acc_history, val_bleu4_history, is_best)
+               
 
 
 def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, epoch):
@@ -333,8 +363,10 @@ def validate(val_loader, encoder, decoder, criterion):
                         img_caps))  # remove <start> and pads
                 references.append(img_captions)
 
+
             # Hypotheses
-            preds, _ = torch.max(scores_copy, dim=2)
+            #preds, _ = torch.max(scores_copy, dim=2)
+            preds = torch.argmax(scores_copy, dim=2)
             preds = preds.tolist()
             temp_preds = list()
             for j, p in enumerate(preds):

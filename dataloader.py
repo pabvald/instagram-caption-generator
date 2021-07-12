@@ -1,8 +1,15 @@
+
+"""
+    Author: Sagar Vinodababu (@sgrvinod)
+    Source: https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Image-Captioning
+"""
+
 import torch
 import json
 import h5py
 from os.path import join as pjoin
 from torch.utils.data import Dataset
+
 
 class CaptionDataset(Dataset):
     """

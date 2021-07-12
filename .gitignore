@@ -136,9 +136,10 @@ tmp/
 cache/
 condor/
 
-# datasets
+# big files
 img/
-.hdf5cle
+models/
+.hdf5
 
 # embeddings
 GoogleNews-vectors-negative300.bin.gz

@@ -3,15 +3,16 @@
 
 import os
 import json
+import torch
 import argparse
+from config import *
 from os.path import join as pjoin
 from collections import Counter
-from preprocessing.common import create_input_files
+from preprocessing import create_input_files
 from utils import create_wordmap, load_embeddings
-import torch
-from config import *
 
-# parse parameters
+
+# Parse parameters
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--dataset", default="flickr8k", choices=["flickr8k", "flickr30k"])
 parser.add_argument("-min", "--minimal-length", default=2)
@@ -21,7 +22,7 @@ parser.add_argument("-c", "--captions-per-image", default=3)
 args = vars(parser.parse_args())
 
 
-# constants
+# Constants
 RAND_STATE = 42
 DATASET = args['dataset']
 CAPTIONS_PER_IMAGE = int(args['captions_per_image'])
@@ -29,11 +30,11 @@ MIN_WORD_FREQ = int(args['min_word_frequency'])
 CAPT_MIN_LENGTH = int(args['minimal_length']) 
 CAPT_MAX_LENGTH = int(args['maximal_length'])
 
-# paths 
+# Paths 
 DIR = os.path.dirname(__file__)
-PATH_KAPATHY_SPLIT = pjoin(DIR, '../data/datasets', DATASET, 'dataset_' + DATASET + '.json')
-OUTPUT_FOLDER = pjoin(DIR, '../data/datasets', DATASET)
-IMG_FOLDER = pjoin(DIR, '../data/datasets', DATASET, 'img')
+PATH_KAPATHY_SPLIT = pjoin(PATH_DATASETS, DATASET, 'dataset_' + DATASET + '.json')
+OUTPUT_FOLDER = pjoin(PATH_DATASETS, DATASET)
+IMG_FOLDER = pjoin(PATH_DATASETS, DATASET, 'img')
 
 if DATASET == 'flickr30k':
     IMG_FOLDER = pjoin(IMG_FOLDER, 'flickr30k_images')

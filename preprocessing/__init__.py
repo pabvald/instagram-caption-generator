@@ -2,19 +2,9 @@ import h5py
 import json
 import numpy as np
 from PIL import Image
-from tqdm import tqdm
+from utils import encode_caption
 from os.path import join as pjoin
 from random import seed, choice, sample
-
-def encode_caption(caption, word_map, capt_max_length):
-    """Encode a caption given a word mapping 
-        :param caption: list of tokens
-        :param word_map: word mapping
-        :param capt_max_length: maximum length of a caption
-    """
-    return [word_map['<start>']] + \
-           [word_map.get(word, word_map['<unk>']) for word in caption] + \
-           [word_map['<end>']] + [word_map['<pad>']] * (capt_max_length - len(caption))
 
 
 def create_input_files(dataset, impaths, imcaps, split, word_map, output_folder, captions_per_image, capt_max_length):
@@ -28,7 +18,7 @@ def create_input_files(dataset, impaths, imcaps, split, word_map, output_folder,
         :param captions_per_image
         :param capt_max_length 
     """
-    print("Creataing files for {} dataset".format(dataset))
+    print("Creating files for {} dataset".format(dataset))
     seed(123)
     with h5py.File(pjoin(output_folder, split + '_IMAGES_' + dataset + '.hdf5'), 'a') as h:
         # Make a note of the number of captions we are sampling per image
@@ -42,7 +32,7 @@ def create_input_files(dataset, impaths, imcaps, split, word_map, output_folder,
         enc_captions = []
         caplens = []
 
-        for i, path in enumerate(tqdm(impaths)):
+        for i in range(len(impaths)):
 
             # Sample captions
             if len(imcaps[i]) < captions_per_image:

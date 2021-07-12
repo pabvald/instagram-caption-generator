@@ -3,23 +3,23 @@
 
 import re
 import csv
+import torch
 import argparse
 import numpy as np
 import pandas as pd
+#import pytesseract as tess
+from config import *
 from collections import Counter
 from gensim.models import KeyedVectors
+from preprocessing import create_input_files
 from utils import create_wordmap, load_embeddings
-from preprocessing.common import create_input_files
-from config import *
-import torch
 
-#import pytesseract as tess
 #tess.pytesseract.tesseract_cmd = r'D:\Tesseract-OCR\tesseract.exe'
 
-# remove warnings
+# Remove warnings
 pd.options.mode.chained_assignment = None  # default='warn'
 
-# parse parameters
+# Parse parameters
 parser = argparse.ArgumentParser()
 parser.add_argument("-min", "--minimal-length", default=2)
 parser.add_argument("-max", "--maximal-length", default=50)
@@ -29,14 +29,14 @@ parser.add_argument("-t", "--train-size", default=0.6)
 parser.add_argument("-v", "--val-size", default=0.2)
 args = vars(parser.parse_args())
 
-# paths
+# Paths
 DIR = os.path.dirname(__file__)
 PATH_ROOT = pjoin(DIR, '../data/datasets/instagram')
 OUTPUT_FOLDER = pjoin(DIR, '../data/datasets/instagram')
 PATH_SLANG = pjoin(DIR, '../data/preprocessing/slang.txt')
 PATH_SYNONYMS = pjoin(DIR, '../data/preprocessing/synonyms_en.txt')
 
-# constants
+# Constants
 RAND_STATE = 42
 PUNCTUATIONS = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
 MIN_WORD_FREQ = int(args['min_word_frequency'])
@@ -47,7 +47,7 @@ TRAIN_SIZE = float(args['train_size'])
 VAL_SIZE = float(args['val_size'])
 
 
-# functions
+# Functions
 def slang_translator(filepath, text):
     """ Translate slang to normal text.
         :param filepath: path to the .txt files containing the slang translations
@@ -202,11 +202,6 @@ def augment_caption(data, synfile, caption_number = 1):
     data.dropna(inplace=True)
     return data
 
-def word_frequencies(data):
-    """ Count the frequencies of the words in the captions
-        :param data
-    """
-
 def preprocess(data):
     """ Preprocess captions and remove images that doesn't meet the requierements
         :param data: 
@@ -259,7 +254,7 @@ def main():
     synonyms = _get_synonyms(PATH_SYNONYMS)
 
     for split, dataset in splits.items():        
-        for index, row in dataset.iterrows():
+        for _, row in dataset.iterrows():
             captions = [] 
             path = pjoin(PATH_ROOT, row[1] + '.jpg')
             for i in range(CAPTIONS_PER_IMAGE):                
