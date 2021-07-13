@@ -47,12 +47,13 @@ cudnn.benchmark = True  # set to true only if inputs to model are fixed size; ot
 # Training parameters
 #====================
 start_epoch = 0
-epochs = 3  # number of epochs to train for (if early stopping is not triggered)
+epochs = 300  # number of epochs to train for (if early stopping is not triggered)
 epochs_since_improvement = 0  # keeps track of number of epochs since there's been an improvement in validation BLEU
+patience = 20  # early stopping patience
 batch_size = 32
 workers = 1  # for data-loading; right now, only 1 works with h5py
 encoder_lr = 1e-4  # learning rate for encoder if fine-tuning
-decoder_lr = 4e-4  # learning rate for decoder
+decoder_lr = 3e-4  # learning rate for decoder
 grad_clip = 5.  # clip gradients at an absolute value of
 alpha_c = 1.  # regularization parameter for 'doubly stochastic attention', as in the paper
 best_bleu4 = 0.  # BLEU-4 score right now
@@ -142,8 +143,18 @@ def main():
         print('Epoch: {}'.format(epoch))
 
         # Decay learning rate if there is no improvement for 8 consecutive epochs, and terminate training after 20
-        if epochs_since_improvement == 20:
+        if epochs_since_improvement == patience:
+            # Print histories 
+            print()
+            print("Histories:")
+            print("train_loss_history = ", train_loss_history)
+            print("train_top5acc_history = ", train_top5acc_history)
+            print("val_loss_history = ", val_loss_history)
+            print("val_top5acc_history = ", val_top5acc_history)
+            print("val_bleu4_history = ", val_bleu4_history)
+            print()
             break
+        
         if epochs_since_improvement > 0 and epochs_since_improvement % 8 == 0:
             adjust_learning_rate(decoder_optimizer, 0.8)
             if fine_tune_encoder:
@@ -179,13 +190,6 @@ def main():
             print("\nEpochs since last improvement: %d\n" % (epochs_since_improvement,))
         else:
             epochs_since_improvement = 0
-
-         # Print histories 
-        print("train_loss_history", train_loss_history)
-        print("train_top5acc_history", train_top5acc_history)
-        print("val_loss_history", val_loss_history)
-        print("val_top5acc_history", val_top5acc_history)
-        print("val_bleu4_history", val_bleu4_history)
 
         # Save checkpoint
         save_checkpoint(os.path.join(PATH_MODELS, data_name), data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
