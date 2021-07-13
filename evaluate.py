@@ -22,7 +22,7 @@ from nltk.translate.bleu_score import corpus_bleu
 
 
 # Parameters
-metrics = ['bleu', 'cider', 'rouge', 'meteor']
+metrics = ['bleu', 'cider', 'rouge', 'meteor'] # select the desired metrics
 data_folder = PATH_FLICKR  # folder with data files saved by create_input_files.py
 data_name = 'flickr8k'  # base name shared by data files
 checkpoint = pjoin(PATH_MODELS, data_name, 'BEST_checkpoint_flickr8k_bs32_elr_0_dlr0.0004_epoch12.pth.tar')  # model checkpoint
