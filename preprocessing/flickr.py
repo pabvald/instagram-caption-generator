@@ -2,9 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import os
+import sys
 import json
 import torch
 import argparse
+
+currentdir = os.path.dirname(os.path.realpath(__file__))
+parentdir = os.path.dirname(currentdir)
+sys.path.append(parentdir)
+
 from config import *
 from os.path import join as pjoin
 from collections import Counter
@@ -31,13 +37,13 @@ CAPT_MIN_LENGTH = int(args['minimal_length'])
 CAPT_MAX_LENGTH = int(args['maximal_length'])
 
 # Paths 
-DIR = os.path.dirname(__file__)
-PATH_KAPATHY_SPLIT = pjoin(PATH_DATASETS, DATASET, 'dataset_' + DATASET + '.json')
-OUTPUT_FOLDER = pjoin(PATH_DATASETS, DATASET)
-IMG_FOLDER = pjoin(PATH_DATASETS, DATASET, 'img')
-
+OUTPUT_FOLDER = PATH_FLICKR
+IMG_FOLDER = pjoin(OUTPUT_FOLDER, 'img')
 if DATASET == 'flickr30k':
-    IMG_FOLDER = pjoin(IMG_FOLDER, 'flickr30k_images')
+    OUTPUT_FOLDER = PATH_FLICKR30
+    IMG_FOLDER = pjoin(OUTPUT_FOLDER, 'img/flickr30k_images')
+
+PATH_KAPATHY_SPLIT = pjoin(OUTPUT_FOLDER, 'dataset_' + DATASET + '.json')
 
 def main():
     """ MAIN """
@@ -84,7 +90,7 @@ def main():
     assert len(test_image_paths) == len(test_image_captions)
 
     # Create word map, save it to json
-    word_map = create_wordmap(DATASET, word_freq, MIN_WORD_FREQ, OUTPUT_FOLDER)
+    word_map = create_wordmap(DATASET, word_freq, OUTPUT_FOLDER, MIN_WORD_FREQ)
   
     # Sample captions for each image, save images to HDF5 file, and captions and their lengths to JSON files
     for impaths, imcaps, split in [ (train_image_paths, train_image_captions, 'TRAIN'),
@@ -95,7 +101,7 @@ def main():
                             OUTPUT_FOLDER, CAPTIONS_PER_IMAGE, CAPT_MAX_LENGTH)
 
     # Create embeddings
-    _, embeddings, emb_dim = load_embeddings(PATH_WORD2VEC, PATH_EMOJI2VEC, word_map=word_map)
+    _, embeddings, emb_dim = load_embeddings(word_map=word_map)
     torch.save(embeddings, pjoin(PATH_FLICKR, 'EMBEDDINGS_{}.pt'.format(DATASET)))
 
 if __name__ == '__main__':

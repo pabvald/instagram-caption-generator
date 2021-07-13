@@ -2,6 +2,7 @@ import h5py
 import json
 import numpy as np
 from PIL import Image
+from tqdm import tqdm
 from utils import encode_caption
 from os.path import join as pjoin
 from random import seed, choice, sample
@@ -32,7 +33,7 @@ def create_input_files(dataset, impaths, imcaps, split, word_map, output_folder,
         enc_captions = []
         caplens = []
 
-        for i in range(len(impaths)):
+        for i in tqdm(range(len(impaths))):
 
             # Sample captions
             if len(imcaps[i]) < captions_per_image:

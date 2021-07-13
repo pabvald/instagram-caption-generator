@@ -2,12 +2,19 @@
 # -*- coding: utf-8 -*-
 
 import re
+import os
+import sys
 import csv
 import torch
 import argparse
 import numpy as np
 import pandas as pd
 #import pytesseract as tess
+
+currentdir = os.path.dirname(os.path.realpath(__file__))
+parentdir = os.path.dirname(currentdir)
+sys.path.append(parentdir)
+
 from config import *
 from collections import Counter
 from gensim.models import KeyedVectors
@@ -25,14 +32,12 @@ parser.add_argument("-min", "--minimal-length", default=2)
 parser.add_argument("-max", "--maximal-length", default=50)
 parser.add_argument("-wf", "--min-word-frequency", default=5)
 parser.add_argument("-c", "--captions-per-image", default=1)
-parser.add_argument("-t", "--train-size", default=0.6)
-parser.add_argument("-v", "--val-size", default=0.2)
+parser.add_argument("-t", "--train-size", default=0.65)
+parser.add_argument("-v", "--val-size", default=0.15)
 args = vars(parser.parse_args())
 
 # Paths
 DIR = os.path.dirname(__file__)
-PATH_ROOT = pjoin(DIR, '../data/datasets/instagram')
-OUTPUT_FOLDER = pjoin(DIR, '../data/datasets/instagram')
 PATH_SLANG = pjoin(DIR, '../data/preprocessing/slang.txt')
 PATH_SYNONYMS = pjoin(DIR, '../data/preprocessing/synonyms_en.txt')
 
@@ -140,7 +145,7 @@ def split_dataset(data):
         :param data
     """
     train, val, test = np.split(data.sample(frac=1, random_state=RAND_STATE),
-                                    [int(TRAIN_SIZE*len(data)), int((TRAIN_SIZE+VAL_SIZE)*len(data))])
+                                    [int(TRAIN_SIZE*len(data)), int((TRAIN_SIZE + VAL_SIZE)*len(data))])
 
     splits = {'train': train,
              'val': val,
@@ -215,7 +220,7 @@ def preprocess(data):
 
     # load .csv file containing image locations and captions 
     print("\tLoading captions...")
-    data = pd.read_csv(pjoin(PATH_ROOT, 'captions_csv.csv'))
+    data = pd.read_csv(pjoin(PATH_INSTA, 'captions_csv.csv'))
 
     # preprocess the images
     # print("\tPreprocessing images...")
@@ -232,12 +237,12 @@ def main():
 
     # load .csv, preprocess images and captions if necessary
     print("Loading Instagram dataset...")
-    if  os.path.isfile(pjoin(PATH_ROOT, "preprocessed.csv")):
-        data = pd.read_csv(pjoin(PATH_ROOT, 'preprocessed.csv'))
+    if  os.path.isfile(pjoin(PATH_INSTA, "preprocessed.csv")):
+        data = pd.read_csv(pjoin(PATH_INSTA, 'preprocessed.csv'))
     else:
-        data = pd.read_csv(pjoin(PATH_ROOT, 'captions_csv.csv'))
+        data = pd.read_csv(pjoin(PATH_INSTA, 'captions_csv.csv'))
         data = preprocess(data)
-        data.to_csv(pjoin(PATH_ROOT, "preprocessed.csv"))
+        data.to_csv(pjoin(PATH_INSTA, "preprocessed.csv"))
    
     # split the dataset in train, val, test
     print("Splitting the dataset in train, trainval, val and test ...")
@@ -256,7 +261,7 @@ def main():
     for split, dataset in splits.items():        
         for _, row in dataset.iterrows():
             captions = [] 
-            path = pjoin(PATH_ROOT, row[1] + '.jpg')
+            path = pjoin(PATH_INSTA, row[1] + '.jpg')
             for i in range(CAPTIONS_PER_IMAGE):                
                 caption = row[2]
                 if i > 0: 
@@ -282,7 +287,7 @@ def main():
     assert len(test_image_paths) == len(test_image_captions)
 
     # Create word map, save it to json
-    word_map = create_wordmap("instagram", word_freq, MIN_WORD_FREQ, OUTPUT_FOLDER)
+    word_map = create_wordmap("instagram", word_freq, PATH_INSTA, MIN_WORD_FREQ)
 
     # Sample captions for each image, save images to HDF5 file, and captions and their lengths to JSON files
     for impaths, imcaps, split in [ (train_image_paths, train_image_captions, 'TRAIN'),
@@ -290,11 +295,11 @@ def main():
                                    (test_image_paths, test_image_captions, 'TEST')]:
         
         create_input_files("instagram", impaths, imcaps, split, word_map, 
-                            OUTPUT_FOLDER, CAPTIONS_PER_IMAGE, CAPT_MAX_LENGTH)
+                            PATH_INSTA, CAPTIONS_PER_IMAGE, CAPT_MAX_LENGTH)
 
     # Create embeddings
-    _, embeddings, emb_dim = load_embeddings(PATH_WORD2VEC, PATH_EMOJI2VEC, word_map=word_map)
-    torch.save(embeddings, pjoin(PATH_FLICKR, 'EMBEDDINGS_instagram.pt'))
+    _, embeddings, emb_dim = load_embeddings(word_map=word_map)
+    torch.save(embeddings, pjoin(PATH_INSTA, 'EMBEDDINGS_instagram.pt'))
 
 if __name__ == '__main__':
     main()
