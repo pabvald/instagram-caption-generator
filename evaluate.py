@@ -6,27 +6,32 @@
     Source: https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Image-Captioning
 """
 
+from math import hypot
 import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
+import torch.nn.functional as F
 import torchvision.transforms as transforms
 from utils import *
+from config import *
 from tqdm import tqdm
-import torch.nn.functional as F
-from datasets import CaptionDataset
+from evaluation.eval import eval as evaluate_metrics
+from dataloader import CaptionDataset
+from os.path import join as pjoin
 from nltk.translate.bleu_score import corpus_bleu
 
 
 # Parameters
-data_folder = '/media/ssd/caption data'  # folder with data files saved by create_input_files.py
-data_name = 'coco_5_cap_per_img_5_min_word_freq'  # base name shared by data files
-checkpoint = '../BEST_checkpoint_coco_5_cap_per_img_5_min_word_freq.pth.tar'  # model checkpoint
-word_map_file = '/media/ssd/caption data/WORDMAP_coco_5_cap_per_img_5_min_word_freq.json'  # word map, ensure it's the same the data was encoded with and the model was trained with
+metrics = ['bleu', 'cider', 'rouge', 'meteor']
+data_folder = PATH_FLICKR  # folder with data files saved by create_input_files.py
+data_name = 'flickr8k'  # base name shared by data files
+checkpoint = pjoin(PATH_MODELS, data_name, 'BEST_checkpoint_flickr8k_bs32_elr_0_dlr0.0004_epoch12.pth.tar')  # model checkpoint
+word_map_file = pjoin(PATH_FLICKR, 'WORDMAP_flickr8k.json')  # word map, ensure it's the same the data was encoded with and the model was trained with
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # sets device for model and PyTorch tensors
 cudnn.benchmark = True  # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
 
 # Load model
-checkpoint = torch.load(checkpoint)
+checkpoint = torch.load(checkpoint, map_location=torch.device('cpu'))
 decoder = checkpoint['decoder']
 decoder = decoder.to(device)
 decoder.eval()
@@ -37,7 +42,7 @@ encoder.eval()
 # Load word map (word2ix)
 with open(word_map_file, 'r') as j:
     word_map = json.load(j)
-rev_word_map = {v: k for k, v in word_map.items()}
+inv_word_map = inverse_word_map(word_map)
 vocab_size = len(word_map)
 
 # Normalization transform
@@ -45,7 +50,7 @@ normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 
 
-def evaluate(beam_size):
+def evaluate(beam_size, metrics):
     """
     Evaluation
     :param beam_size: beam size at which to generate captions for evaluation
@@ -62,12 +67,12 @@ def evaluate(beam_size):
     # Lists to store references (true captions), and hypothesis (prediction) for each image
     # If for n images, we have n hypotheses, and references a, b, c... for each image, we need -
     # references = [[ref1a, ref1b, ref1c], [ref2a, ref2b], ...], hypotheses = [hyp1, hyp2, ...]
-    references = list()
-    hypotheses = list()
+    references = dict() #list()
+    hypotheses = dict() #list()
 
     # For each image
-    for i, (image, caps, caplens, allcaps) in enumerate(
-            tqdm(loader, desc="EVALUATING AT BEAM SIZE " + str(beam_size))):
+    #for i, (image, caps, caplens, allcaps) in enumerate([next(iter(loader))]): 
+    for i, (image, caps, caplens, allcaps) in enumerate(tqdm(loader)):
 
         k = beam_size
 
@@ -133,7 +138,7 @@ def evaluate(beam_size):
             next_word_inds = top_k_words % vocab_size  # (s)
 
             # Add new words to sequences
-            seqs = torch.cat([seqs[prev_word_inds], next_word_inds.unsqueeze(1)], dim=1)  # (s, step+1)
+            seqs = torch.cat([seqs[prev_word_inds.long()], next_word_inds.unsqueeze(1)], dim=1)  # (s, step+1)
 
             # Which sequences are incomplete (didn't reach <end>)?
             incomplete_inds = [ind for ind, next_word in enumerate(next_word_inds) if
@@ -150,9 +155,9 @@ def evaluate(beam_size):
             if k == 0:
                 break
             seqs = seqs[incomplete_inds]
-            h = h[prev_word_inds[incomplete_inds]]
-            c = c[prev_word_inds[incomplete_inds]]
-            encoder_out = encoder_out[prev_word_inds[incomplete_inds]]
+            h = h[prev_word_inds[incomplete_inds].long()]
+            c = c[prev_word_inds[incomplete_inds].long()]
+            encoder_out = encoder_out[prev_word_inds[incomplete_inds].long()]
             top_k_scores = top_k_scores[incomplete_inds].unsqueeze(1)
             k_prev_words = next_word_inds[incomplete_inds].unsqueeze(1)
 
@@ -161,27 +166,42 @@ def evaluate(beam_size):
                 break
             step += 1
 
-        i = complete_seqs_scores.index(max(complete_seqs_scores))
-        seq = complete_seqs[i]
+        try:
+            j = complete_seqs_scores.index(max(complete_seqs_scores))
+            seq = complete_seqs[j]
+        except ValueError:
+            continue
 
         # References
         img_caps = allcaps[0].tolist()
-        img_captions = list(
-            map(lambda c: [w for w in c if w not in {word_map['<start>'], word_map['<end>'], word_map['<pad>']}],
-                img_caps))  # remove <start> and pads
-        references.append(img_captions)
+        img_captions = list(map(lambda c: decode_caption(c, word_map, inv_word_map), img_caps))
+        references[str(i)] = img_captions
+        # img_captions = list(
+        #     map(lambda c: [w for w in c if w not in {word_map['<start>'], word_map['<end>'], word_map['<pad>']}],
+        #         img_caps))  # remove <start> and pads
+        #references.append(img_captions)
+        
 
         # Hypotheses
-        hypotheses.append([w for w in seq if w not in {word_map['<start>'], word_map['<end>'], word_map['<pad>']}])
+        hypotheses[str(i)] = [decode_caption(seq, word_map, inv_word_map)]
+        #hypotheses.append([w for w in seq if w not in {word_map['<start>'], word_map['<end>'], word_map['<pad>']}])    
 
         assert len(references) == len(hypotheses)
 
-    # Calculate BLEU-4 scores
-    bleu4 = corpus_bleu(references, hypotheses)
+    # Calculate metrics
+    results = evaluate_metrics(references, hypotheses, metrics=metrics)   
+    bleu4 = corpus_bleu(list(references.values()), list(hypotheses.values()))
+    print(" - NLTK BLEU = {}".format(bleu4))
 
-    return bleu4
-
+    return results
 
 if __name__ == '__main__':
     beam_size = 1
-    print("\nBLEU-4 score @ beam size of %d is %.4f." % (beam_size, evaluate(beam_size)))
+    metrics = evaluate(beam_size, metrics)
+    
+    print("\n Evaluation metrics with beam size = {}".format(beam_size))
+    for k, v in metrics.items():
+        print(" - {} = {}".format(k.upper(), v))
+
+   
+    

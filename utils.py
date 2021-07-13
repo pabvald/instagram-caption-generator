@@ -146,6 +146,12 @@ def create_wordmap(dataset, word_freq, output_folder, min_word_freq=None):
 
     return word_map
 
+def inverse_word_map(word_map):
+    """ Create an inverse word mapping.
+        :param word_map: word mapping
+    """
+    return {v: k for k, v in word_map.items()}
+
 def encode_caption(caption, word_map, capt_max_length):
     """Encode a caption given a word mapping 
         :param caption: list of tokens
@@ -156,13 +162,22 @@ def encode_caption(caption, word_map, capt_max_length):
            [word_map.get(word, word_map['<unk>']) for word in caption] + \
            [word_map['<end>']] + [word_map['<pad>']] * (capt_max_length - len(caption))
 
-def decode_caption(caption, word_map, capt_max_length): 
+def decode_caption(caption, word_map, inv_map=None): 
     """ Decode a caption given a word mapping
         :param caption: list of word codes
         :param word_map: word mapping
         :param capt_max_length: maximum length of a caption 
     """
-    raise NotImplementedError
+    i = 1 # ignore <start>
+    np_caption = np.array(caption)
+    decoded_caption = []
+    if not inv_map:
+        inv_map = inverse_word_map(word_map)
+    
+    while np_caption[i] not in {word_map['<pad>'], word_map['<end>']}:
+        decoded_caption.append(inv_map[np_caption[i]])
+        i += 1
+    return ' '.join(decoded_caption)
     
 def _init_embedding(embeddings):
     """
@@ -182,7 +197,7 @@ def load_embeddings(word_map=None, binary=True):
             it wasn't supplied.
     """
 
-    print("\tLoading embeddings...")
+    print("Loading embeddings...")
     wv = KeyedVectors.load_word2vec_format(PATH_WORD2VEC, binary=binary)
     ev = KeyedVectors.load_word2vec_format(PATH_EMOJI2VEC, binary=binary)
     # Find embedding dimension
@@ -205,9 +220,9 @@ def load_embeddings(word_map=None, binary=True):
     for emb_word in vocab:
 
         if emb_word in wv.key_to_index:
-            embeddings[word_map[emb_word]] = torch.FloatTensor(wv.get_vector(emb_word))
+            embeddings[word_map[emb_word]] = torch.FloatTensor(wv.get_vector(emb_word).copy())
         elif emb_word in ev.key_to_index:
-            embeddings[word_map[emb_word]] = torch.FloatTensor(ev.get_vector(emb_word))
+            embeddings[word_map[emb_word]] = torch.FloatTensor(ev.get_vector(emb_word).copy())
 
     return word_map, embeddings, emb_dim
 
