@@ -34,6 +34,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # sets de
 data_folder = PATH_FLICKR  # folder with data files saved by create_input_files.py
 data_name = 'flickr8k'  # base name shared by data files
 
+
 #=================
 # Model parameters
 #=================
@@ -47,13 +48,13 @@ cudnn.benchmark = True  # set to true only if inputs to model are fixed size; ot
 # Training parameters
 #====================
 start_epoch = 0
-epochs = 300  # number of epochs to train for (if early stopping is not triggered)
+epochs = 100  # number of epochs to train for (if early stopping is not triggered)
 epochs_since_improvement = 0  # keeps track of number of epochs since there's been an improvement in validation BLEU
 patience = 20  # early stopping patience
-batch_size = 32
+batch_size = 80
 workers = 1  # for data-loading; right now, only 1 works with h5py
 encoder_lr = 1e-4  # learning rate for encoder if fine-tuning
-decoder_lr = 3e-4  # learning rate for decoder
+decoder_lr = 4e-4  # learning rate for decoder
 grad_clip = 5.  # clip gradients at an absolute value of
 alpha_c = 1.  # regularization parameter for 'doubly stochastic attention', as in the paper
 best_bleu4 = 0.  # BLEU-4 score right now
@@ -61,6 +62,7 @@ print_freq = 100  # print training/validation stats every __ batches
 fine_tune_encoder = False  # fine-tune encoder?
 fine_tune_embeddings = False  # fine-tine embeddings?
 checkpoint = None  # path to checkpoint, None if none
+save_name = "{}_bs{}_elr{}_dlr{}".format(data_name, batch_size, encoder_lr * int(fine_tune_encoder), decoder_lr)
 
 
 def main():
@@ -192,7 +194,7 @@ def main():
             epochs_since_improvement = 0
 
         # Save checkpoint
-        save_checkpoint(os.path.join(PATH_MODELS, data_name), data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
+        save_checkpoint(os.path.join(PATH_MODELS, data_name), save_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
                         decoder_optimizer, recent_bleu4, train_loss_history, train_top5acc_history,
                         val_loss_history, val_top5acc_history, val_bleu4_history, is_best)
                
