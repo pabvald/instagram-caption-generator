@@ -192,8 +192,8 @@ def evaluate(beam_size, metrics):
         if i < 50:
             save_image(image, pjoin(EVAL_IMAGES_PATH, '{}.png'.format(i)))
             print('\nImage: {}'.format(i))
-            print('The real sentence: {}'.format(caps[0]))
-            print('The generated sentence: {}\n'.format(hypotheses[0]))
+            print('The real sentence: {}'.format(decode_caption(caps[0], word_map, inv_word_map)))
+            print('The generated sentence: {}\n'.format(img_captions[0]))
 
         assert len(references) == len(hypotheses)
 
