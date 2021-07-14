@@ -19,6 +19,7 @@ from evaluation.eval import eval as evaluate_metrics
 from dataloader import CaptionDataset
 from os.path import join as pjoin
 from nltk.translate.bleu_score import corpus_bleu
+from torchvision.utils import save_image
 
 
 # Parameters
@@ -59,7 +60,7 @@ def evaluate(beam_size, metrics):
     # DataLoader
     test_loader = torch.utils.data.DataLoader(
         CaptionDataset(data_folder, data_name, 'TEST', transform=transforms.Compose([normalize])),
-        batch_size=1, shuffle=True, num_workers=1, pin_memory=True)
+        batch_size=1, shuffle=False, num_workers=1, pin_memory=True)
 
     # TODO: Batched Beam Search
     # Therefore, do not use a batch_size greater than 1 - IMPORTANT!
@@ -83,6 +84,14 @@ def evaluate(beam_size, metrics):
         encoder_out = encoder(image)  # (1, enc_image_size, enc_image_size, encoder_dim)
         enc_image_size = encoder_out.size(1)
         encoder_dim = encoder_out.size(3)
+
+        # Print the results
+        if i < 50:
+            score, caption, decode_length, alpha, sort_ind = decoder(image, caps, caplens)
+            save_image(image, pjoin(EVAL_IMAGES_PATH,'i.png'))
+            print('Image: {}'.format(i))
+            print('\n The real sentence: {}'.format(caps[0]))
+            print('\n The generated sentence: {}'.format(caption[0]))
 
         # Flatten encoding
         encoder_out = encoder_out.view(1, -1, encoder_dim)  # (1, num_pixels, encoder_dim)
