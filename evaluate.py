@@ -188,12 +188,12 @@ def evaluate(beam_size, metrics):
         hypotheses[str(i)] = [decode_caption(seq, word_map, inv_word_map)]
         #hypotheses.append([w for w in seq if w not in {word_map['<start>'], word_map['<end>'], word_map['<pad>']}])    
 
-        # Print the results
+        # Print the results for the first 50 images
         if i < 50:
             save_image(image, pjoin(EVAL_IMAGES_PATH, '{}.png'.format(i)))
             print('\nImage: {}'.format(i))
             print('The real sentence: {}'.format(caps[0]))
-            print('The generated sentence: {}\n'.format(seq[0]))
+            print('The generated sentence: {}\n'.format(hypotheses[0]))
 
         assert len(references) == len(hypotheses)
 
