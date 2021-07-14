@@ -190,7 +190,7 @@ def evaluate(beam_size, metrics):
 
         # Print the results
         if i < 50:
-            save_image(image, pjoin(EVAL_IMAGES_PATH, 'i.png'))
+            save_image(image, pjoin(EVAL_IMAGES_PATH, '{}.png'.format(i)))
             print('\nImage: {}'.format(i))
             print('The real sentence: {}'.format(caps[0]))
             print('The generated sentence: {}\n'.format(seq[0]))
