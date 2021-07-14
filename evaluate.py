@@ -57,7 +57,7 @@ def evaluate(beam_size, metrics):
     :return: BLEU-4 score
     """
     # DataLoader
-    loader = torch.utils.data.DataLoader(
+    test_loader = torch.utils.data.DataLoader(
         CaptionDataset(data_folder, data_name, 'TEST', transform=transforms.Compose([normalize])),
         batch_size=1, shuffle=True, num_workers=1, pin_memory=True)
 
@@ -71,8 +71,8 @@ def evaluate(beam_size, metrics):
     hypotheses = dict() #list()
 
     # For each image
-    #for i, (image, caps, caplens, allcaps) in enumerate([next(iter(loader))]): 
-    for i, (image, caps, caplens, allcaps) in enumerate(tqdm(loader)):
+    #for i, (image, caps, caplens, allcaps) in enumerate([next(iter(test_loader))]):
+    for i, (image, caps, caplens, allcaps) in enumerate(tqdm(test_loader)):
 
         k = beam_size
 

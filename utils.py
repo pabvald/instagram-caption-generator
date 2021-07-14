@@ -135,6 +135,9 @@ def create_wordmap(dataset, word_freq, output_folder, min_word_freq=None):
     else:
         words = [w for w in word_freq.keys() if word_freq[w] > min_word_freq]
 
+    print('Old vocabulary size: {}'.format(len(word_freq)))
+    print('New vocabulary size: {}'.format(len(words)))
+
     word_map = {k: v + 1 for v, k in enumerate(words)}
     word_map['<unk>'] = len(word_map) + 1
     word_map['<start>'] = len(word_map) + 1

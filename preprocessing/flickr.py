@@ -23,8 +23,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--dataset", default="flickr8k", choices=["flickr8k", "flickr30k"])
 parser.add_argument("-min", "--minimal-length", default=2)
 parser.add_argument("-max", "--maximal-length", default=50)
-parser.add_argument("-wf", "--min-word-frequency", default=5)
-parser.add_argument("-c", "--captions-per-image", default=3)
+parser.add_argument("-wf", "--min-word-frequency", default=1)
+parser.add_argument("-c", "--captions-per-image", default=5)
 args = vars(parser.parse_args())
 
 
