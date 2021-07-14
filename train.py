@@ -39,8 +39,8 @@ data_name = 'flickr8k'  # base name shared by data files
 # Model parameters
 #=================
 emb_dim = 300  # dimension of word embeddings
-attention_dim = 512  # dimension of attention linear layers
-decoder_dim = 512  # dimension of decoder RNN
+attention_dim = 300  # dimension of attention linear layers
+decoder_dim = 300  # dimension of decoder RNN
 dropout = 0.5
 cudnn.benchmark = True  # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
 
@@ -60,9 +60,9 @@ alpha_c = 1.  # regularization parameter for 'doubly stochastic attention', as i
 best_bleu4 = 0.  # BLEU-4 score right now
 print_freq = 100  # print training/validation stats every __ batches
 fine_tune_encoder = False  # fine-tune encoder?
-fine_tune_embeddings = False  # fine-tine embeddings?
+fine_tune_embeddings = True  # fine-tine embeddings?
 checkpoint = None  # path to checkpoint, None if none
-save_name = "{}_bs{}_elr{}_dlr{}".format(data_name, batch_size, encoder_lr * int(fine_tune_encoder), decoder_lr)
+save_name = "{}_bs{}_ad{}_dd{}_elr{}_dlr{}".format(data_name, batch_size, attention_dim, decoder_dim, encoder_lr * int(fine_tune_encoder), decoder_lr)
 
 
 def main():
@@ -72,6 +72,12 @@ def main():
 
     global best_bleu4, epochs_since_improvement, checkpoint, start_epoch, fine_tune_encoder, data_name, word_map
 
+    print("--------- Parameters----------")
+    print(" - Batch size = {}".format(batch_size))
+    print(" - Encoder: lr = {}".format(encoder_lr))
+    print(" - Decoder: lr = {}, attention_dim = {}, decoder_dim = {}".format(decoder_lr, attention_dim, decoder_dim))
+    print(" - Fine-tuning: encoder = {}, embeddings = {}".format(fine_tune_encoder, fine_tune_embeddings))
+    print()
     # Read the word map
     # word_map, embeddings, emb_dim = load_embeddings(PATH_WORD2VEC, PATH_EMOJI2VEC)
     # embeddings = torch.load(os.path.join(data_folder, 'EMBEDDINGS_' + data_name + '.pt')) # DEBUGGING
