@@ -85,14 +85,6 @@ def evaluate(beam_size, metrics):
         enc_image_size = encoder_out.size(1)
         encoder_dim = encoder_out.size(3)
 
-        # Print the results
-        if i < 50:
-            score, caption, decode_length, alpha, sort_ind = decoder(image, caps, caplens)
-            save_image(image, pjoin(EVAL_IMAGES_PATH,'i.png'))
-            print('Image: {}'.format(i))
-            print('\n The real sentence: {}'.format(caps[0]))
-            print('\n The generated sentence: {}'.format(caption[0]))
-
         # Flatten encoding
         encoder_out = encoder_out.view(1, -1, encoder_dim)  # (1, num_pixels, encoder_dim)
         num_pixels = encoder_out.size(1)
@@ -184,6 +176,7 @@ def evaluate(beam_size, metrics):
         # References
         img_caps = allcaps[0].tolist()
         img_captions = list(map(lambda c: decode_caption(c, word_map, inv_word_map), img_caps))
+
         references[str(i)] = img_captions
         # img_captions = list(
         #     map(lambda c: [w for w in c if w not in {word_map['<start>'], word_map['<end>'], word_map['<pad>']}],
@@ -194,6 +187,13 @@ def evaluate(beam_size, metrics):
         # Hypotheses
         hypotheses[str(i)] = [decode_caption(seq, word_map, inv_word_map)]
         #hypotheses.append([w for w in seq if w not in {word_map['<start>'], word_map['<end>'], word_map['<pad>']}])    
+
+        # Print the results
+        if i < 50:
+            save_image(image, pjoin(EVAL_IMAGES_PATH, 'i.png'))
+            print('\nImage: {}'.format(i))
+            print('The real sentence: {}'.format(caps[0]))
+            print('The generated sentence: {}\n'.format(seq[0]))
 
         assert len(references) == len(hypotheses)
 
