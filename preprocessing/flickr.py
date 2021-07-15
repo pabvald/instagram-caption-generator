@@ -32,7 +32,7 @@ args = vars(parser.parse_args())
 RAND_STATE = 42
 DATASET = args['dataset']
 CAPTIONS_PER_IMAGE = int(args['captions_per_image'])
-MIN_WORD_FREQ = int(args['min_word_frequency'])
+MIN_WORD_FREQ = None #int(args['min_word_frequency'])
 CAPT_MIN_LENGTH = int(args['minimal_length']) 
 CAPT_MAX_LENGTH = int(args['maximal_length'])
 

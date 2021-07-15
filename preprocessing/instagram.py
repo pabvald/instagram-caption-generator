@@ -44,7 +44,7 @@ PATH_SYNONYMS = pjoin(DIR, '../data/preprocessing/synonyms_en.txt')
 # Constants
 RAND_STATE = 42
 PUNCTUATIONS = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
-MIN_WORD_FREQ = int(args['min_word_frequency'])
+MIN_WORD_FREQ = None #int(args['min_word_frequency'])
 CAPTIONS_PER_IMAGE = int(args['captions_per_image'])
 CAPT_MIN_LENGTH = int(args['minimal_length']) 
 CAPT_MAX_LENGTH = int(args['maximal_length'])

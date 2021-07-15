@@ -23,7 +23,7 @@ class CaptionDataset(Dataset):
         :param split: split, one of 'TRAIN', 'VAL', or 'TEST'
         :param transform: image transform pipeline
         """
-        assert dataset in {'flickr8k', 'flickr30k', 'instagram'}        
+        assert dataset in {'flickr8k', 'flickr30k', 'instagram', 'flickr8k-insta'}        
         assert split in {'TRAIN', 'VAL', 'TEST'}
 
         self.split = split
