@@ -63,7 +63,7 @@ def accuracy(scores, targets, k):
     correct_total = correct.view(-1).float().sum()  # 0D tensor
     return correct_total.item() * (100.0 / batch_size)
 
-def plot_history(save_dir, data_name, history):
+def plot_history(save_dir, history):
     """ 
     Creates a plot for the history of the different metrics (loss, top-5 accuracy, bleu4) during
     training.
@@ -78,7 +78,7 @@ def plot_history(save_dir, data_name, history):
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend()
-    plt.savefig(pjoin(save_dir, data_name + '_loss.png'))
+    plt.savefig(pjoin(save_dir, 'train_val_loss.png'))
 
     # plot train and validation top5 accuracy
     plt.figure()
@@ -88,13 +88,13 @@ def plot_history(save_dir, data_name, history):
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
     plt.legend()
-    plt.savefig(pjoin(save_dir, data_name + '_top5acc.png'))
+    plt.savefig(pjoin(save_dir, 'train_val_top5acc.png'))
 
     # plot validation BLEU-4 score
     plt.figure()
     plt.title("BLEU-4 history")
     plt.plot(history["val_bleu4"])
-    plt.savefig(pjoin(save_dir, data_name + '_bleu4.png'))
+    plt.savefig(pjoin(save_dir, 'val_bleu4.png'))
 
 
 def save_checkpoint(save_dir, data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
@@ -122,7 +122,7 @@ def save_checkpoint(save_dir, data_name, epoch, epochs_since_improvement, encode
              'decoder_optimizer': decoder_optimizer,
              'history': history,
              }
-    filename = 'checkpoint_' + data_name + '.pth.tar'
+    filename = 'checkpoint_' + data_name  + '.pth.tar'
     torch.save(state, pjoin(save_dir, filename))
     # If this checkpoint is the best so far, store a copy so it doesn't get overwritten by a worse checkpoint
     if is_best:

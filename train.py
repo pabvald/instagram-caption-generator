@@ -7,6 +7,7 @@
 """
 
 import os
+import json
 import time
 import torch.optim
 import torch.utils.data
@@ -14,12 +15,12 @@ import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
 
 from torch import nn
-from utils import *
 from config import *
 from dataloader import CaptionDataset
 from torch.nn.utils.rnn import pack_padded_sequence
 from nn_modules import Encoder, DecoderWithAttention
 from nltk.translate.bleu_score import corpus_bleu
+from utils import AverageMeter, adjust_learning_rate, clip_gradient, accuracy, save_checkpoint
 
 
 #=================
@@ -39,8 +40,8 @@ data_name = 'flickr8k'  # base name shared by data files
 # Model parameters
 #=================
 emb_dim = 300  # dimension of word embeddings
-attention_dim = 512  # dimension of attention linear layers
-decoder_dim = 512  # dimension of decoder RNN
+attention_dim = 300  # dimension of attention linear layers
+decoder_dim = 300  # dimension of decoder RNN
 dropout = 0.5
 cudnn.benchmark = True  # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
 
@@ -48,7 +49,7 @@ cudnn.benchmark = True  # set to true only if inputs to model are fixed size; ot
 # Training parameters
 #====================
 start_epoch = 0
-epochs = 3  # number of epochs to train for (if early stopping is not triggered)
+epochs = 2  # number of epochs to train for (if early stopping is not triggered)
 epochs_since_improvement = 0  # keeps track of number of epochs since there's been an improvement in validation BLEU
 patience = 20  # early stopping patience
 batch_size = 80
@@ -62,10 +63,8 @@ print_freq = 100  # print training/validation stats every __ batches
 fine_tune_encoder = False  # fine-tune encoder?
 fine_tune_embeddings = False  # fine-tine embeddings?
 checkpoint = None  # path to checkpoint, None if none
-train_name = "bs{}_ad{}_dd{}_elr{}_dlr{}".format(batch_size, attention_dim, decoder_dim, 
-                                                encoder_lr * int(fine_tune_encoder), decoder_lr)
+save_name = "bs{}_ad{}_dd{}_elr{}_dlr{}".format(batch_size, attention_dim, decoder_dim, (encoder_lr * int(fine_tune_encoder)), decoder_lr)
 
-save_dir = pjoin(PATH_MODELS, data_name, train_name)
 
 def main():
     """
@@ -73,10 +72,6 @@ def main():
     """
 
     global best_bleu4, epochs_since_improvement, checkpoint, start_epoch, fine_tune_encoder, data_name, word_map
-    
-    # Create save directory if necessary
-    if not os.path.isdir(save_dir):
-        os.makedirs(save_dir)
 
     # Print training parameters
     print("--------- Parameters----------")
@@ -85,14 +80,14 @@ def main():
     print(" - Decoder: lr = {}, attention_dim = {}, decoder_dim = {}".format(decoder_lr, attention_dim, decoder_dim))
     print(" - Fine-tuning: encoder = {}, embeddings = {}\n".format(fine_tune_encoder, fine_tune_embeddings))
 
-    # Histories
+    # History
     history = {
-        "train_loss": [],
-        "train_top5acc": [],
-        "val_loss": [],
-        "val_top5acc": [],
-        "val_bleu4": [],
-    }
+        'train_loss' : [],
+        'train_top5acc' : [],
+        'val_loss' : [],
+        'val_top5acc' : [],
+        'val_bleu4' : [],
+    }   
 
     # Read the word map
     # word_map, embeddings, emb_dim = load_embeddings(PATH_WORD2VEC, PATH_EMOJI2VEC)
@@ -129,7 +124,6 @@ def main():
         decoder_optimizer = checkpoint['decoder_optimizer']
         encoder = checkpoint['encoder']
         encoder_optimizer = checkpoint['encoder_optimizer']
-        history = checkpoint['history']
 
         if fine_tune_encoder is True and encoder_optimizer is None:
             encoder.fine_tune(fine_tune_encoder)
@@ -155,15 +149,14 @@ def main():
         CaptionDataset(data_folder, data_name, 'VAL', transform=transforms.Compose([normalize])),
         batch_size=batch_size, shuffle=True, num_workers=workers, pin_memory=True)
 
+    
+
     # Epochs
     for epoch in range(start_epoch, epochs):
         print('Epoch: {}'.format(epoch))
 
         # Decay learning rate if there is no improvement for 8 consecutive epochs, and terminate training after 20
         if epochs_since_improvement == patience:
-            print("\nHistories:")
-            for k,v in history.items():
-                print("{} = {}".format(k, v))
             break
         
         if epochs_since_improvement > 0 and epochs_since_improvement % 8 == 0:
@@ -186,12 +179,12 @@ def main():
                                 decoder=decoder,
                                 criterion=criterion)
 
-        # Update the histories
-        history["train_loss"].append(train_loss.avg)
-        history["train_top5acc"].append(train_top5acc.avg)
-        history["val_loss"].append(val_loss.avg)
-        history["val_top5acc"].append(val_top5acc.avg)
-        history["val_bleu4"].append(recent_bleu4)
+        # Update the history
+        history['train_loss'].append(train_loss.avg)
+        history['train_top5acc'].append(train_top5acc.avg)
+        history['val_loss'].append(val_loss.avg)
+        history['val_top5acc'].append(val_top5acc.avg)
+        history['val_bleu4'].append(recent_bleu4)
 
         # Check if there was an improvement
         is_best = recent_bleu4 > best_bleu4
@@ -203,15 +196,17 @@ def main():
             epochs_since_improvement = 0
 
         # Save checkpoint
-        save_checkpoint(save_dir, data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
+        save_checkpoint(os.path.join(PATH_MODELS, data_name), save_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
                         decoder_optimizer, recent_bleu4, history, is_best)
                
-
+    # Print histories 
+    print("\n Histories: ")
+    for k, v in history.items():
+        print("{} = {}".format(k, v))
 
 def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, epoch):
     """
     Performs one epoch's training.
-
     :param train_loader: DataLoader for training data
     :param encoder: encoder model
     :param decoder: decoder model
@@ -298,7 +293,6 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
 def validate(val_loader, encoder, decoder, criterion):
     """
     Performs one epoch's validation.
-
     :param val_loader: DataLoader for validation data.
     :param encoder: encoder model
     :param decoder: decoder model

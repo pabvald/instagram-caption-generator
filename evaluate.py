@@ -6,12 +6,12 @@
     Source: https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Image-Captioning
 """
 
-from math import hypot
 import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
 import torch.nn.functional as F
 import torchvision.transforms as transforms
+
 from utils import *
 from config import *
 from tqdm import tqdm
@@ -22,11 +22,12 @@ from nltk.translate.bleu_score import corpus_bleu
 from torchvision.utils import save_image
 
 
+
 # Parameters
 metrics = ['bleu', 'cider', 'rouge', 'meteor'] # select the desired metrics
 data_folder = PATH_FLICKR  # folder with data files saved by create_input_files.py
 data_name = 'flickr8k'  # base name shared by data files
-checkpoint = pjoin(PATH_MODELS, data_name, 'BEST_checkpoint_flickr8k_bs32_elr_0_dlr0.0004_epoch12.pth.tar')  # model checkpoint
+checkpoint = pjoin(PATH_MODELS, data_name, 'BEST_checkpoint_bs80_ad300_dd300_elr0.0_dlr0.0004.pth.tar')  # model checkpoint
 word_map_file = pjoin(PATH_FLICKR, 'WORDMAP_flickr8k.json')  # word map, ensure it's the same the data was encoded with and the model was trained with
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # sets device for model and PyTorch tensors
 cudnn.benchmark = True  # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
@@ -58,9 +59,8 @@ def evaluate(beam_size, metrics):
     :return: BLEU-4 score
     """
     # DataLoader
-    test_loader = torch.utils.data.DataLoader(
-        CaptionDataset(data_folder, data_name, 'TEST', transform=transforms.Compose([normalize])),
-        batch_size=1, shuffle=False, num_workers=1, pin_memory=True)
+    test_data = CaptionDataset(data_folder, data_name, 'TEST', transform=transforms.Compose([normalize]))
+    test_loader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1, pin_memory=True)
 
     # TODO: Batched Beam Search
     # Therefore, do not use a batch_size greater than 1 - IMPORTANT!
@@ -73,7 +73,7 @@ def evaluate(beam_size, metrics):
 
     # For each image
     #for i, (image, caps, caplens, allcaps) in enumerate([next(iter(test_loader))]):
-    for i, (image, caps, caplens, allcaps) in enumerate(tqdm(test_loader)):
+    for index, (image, caps, caplens, allcaps) in enumerate(tqdm(test_loader)):
 
         k = beam_size
 
@@ -176,26 +176,27 @@ def evaluate(beam_size, metrics):
         # References
         img_caps = allcaps[0].tolist()
         img_captions = list(map(lambda c: decode_caption(c, word_map, inv_word_map), img_caps))
-        references[str(i)] = img_captions
+        references[str(index)] = img_captions
         
         # Hypotheses
-        hypotheses[str(i)] = [decode_caption(seq, word_map, inv_word_map)]   
+        hypotheses[str(index)] = [decode_caption(seq, word_map, inv_word_map)]   
+        assert len(references) == len(hypotheses)
 
         # Print the results for the first 50 images
-        if i < 50:
-            print("\n References:")
-            for r in img_captions:
-                print(" - ", r)
-            print("Hypothesis: {}\n".format(hypotheses[str(i)]))        
+        if index < 50:
+            if index % len(img_captions) == 0:
+                print("\n References:")
+                for r in img_captions:
+                    print(" - ", r)
+                print("Hypothesis:")
+            print(" - ", hypotheses[str(index)])  
 
             # save_image(image, pjoin(EVAL_IMAGES_PATH, '{}.png'.format(i)))
             # print('\nImage: {}'.format(i))
             # print('The real sentence:      {}'.format(decode_caption(caps[0], word_map, inv_word_map)))
             # scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(torch.tensor([image]).to(device), caps.to(device), caplens.to(device))
             # print('The generated sentence: {}\n'.format(caps_sorted[0]))
-
-        assert len(references) == len(hypotheses)
-
+    
     # Calculate metrics
     bleu4 = corpus_bleu(list(references.values()), list(hypotheses.values()))
     results = evaluate_metrics(references, hypotheses, metrics=metrics)   
