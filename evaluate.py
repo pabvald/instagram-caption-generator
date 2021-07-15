@@ -68,8 +68,8 @@ def evaluate(beam_size, metrics):
     # Lists to store references (true captions), and hypothesis (prediction) for each image
     # If for n images, we have n hypotheses, and references a, b, c... for each image, we need -
     # references = [[ref1a, ref1b, ref1c], [ref2a, ref2b], ...], hypotheses = [hyp1, hyp2, ...]
-    references = dict() #list()
-    hypotheses = dict() #list()
+    references = dict()
+    hypotheses = dict()
 
     # For each image
     #for i, (image, caps, caplens, allcaps) in enumerate([next(iter(test_loader))]):
@@ -176,31 +176,30 @@ def evaluate(beam_size, metrics):
         # References
         img_caps = allcaps[0].tolist()
         img_captions = list(map(lambda c: decode_caption(c, word_map, inv_word_map), img_caps))
-
         references[str(i)] = img_captions
-        # img_captions = list(
-        #     map(lambda c: [w for w in c if w not in {word_map['<start>'], word_map['<end>'], word_map['<pad>']}],
-        #         img_caps))  # remove <start> and pads
-        #references.append(img_captions)
         
-
         # Hypotheses
-        hypotheses[str(i)] = [decode_caption(seq, word_map, inv_word_map)]
-        #hypotheses.append([w for w in seq if w not in {word_map['<start>'], word_map['<end>'], word_map['<pad>']}])    
+        hypotheses[str(i)] = [decode_caption(seq, word_map, inv_word_map)]   
 
         # Print the results for the first 50 images
         if i < 50:
-            save_image(image, pjoin(EVAL_IMAGES_PATH, '{}.png'.format(i)))
-            print('\nImage: {}'.format(i))
-            print('The real sentence: {}'.format(decode_caption(caps[0], word_map, inv_word_map)))
-            print('The generated sentence: {}\n'.format(img_captions[0]))
+            print("\n References:")
+            for r in img_captions:
+                print(" - ", r)
+            print("Hypothesis: {}\n".format(hypotheses[str(i)]))        
+
+            # save_image(image, pjoin(EVAL_IMAGES_PATH, '{}.png'.format(i)))
+            # print('\nImage: {}'.format(i))
+            # print('The real sentence:      {}'.format(decode_caption(caps[0], word_map, inv_word_map)))
+            # scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(torch.tensor([image]).to(device), caps.to(device), caplens.to(device))
+            # print('The generated sentence: {}\n'.format(caps_sorted[0]))
 
         assert len(references) == len(hypotheses)
 
     # Calculate metrics
-    results = evaluate_metrics(references, hypotheses, metrics=metrics)   
     bleu4 = corpus_bleu(list(references.values()), list(hypotheses.values()))
-    print(" - NLTK BLEU = {}".format(bleu4))
+    results = evaluate_metrics(references, hypotheses, metrics=metrics)   
+    results['nltk-bleu'] = bleu4
 
     return results
 

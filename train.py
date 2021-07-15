@@ -39,8 +39,8 @@ data_name = 'flickr8k'  # base name shared by data files
 # Model parameters
 #=================
 emb_dim = 300  # dimension of word embeddings
-attention_dim = 300  # dimension of attention linear layers
-decoder_dim = 300  # dimension of decoder RNN
+attention_dim = 512  # dimension of attention linear layers
+decoder_dim = 512  # dimension of decoder RNN
 dropout = 0.5
 cudnn.benchmark = True  # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
 
@@ -48,7 +48,7 @@ cudnn.benchmark = True  # set to true only if inputs to model are fixed size; ot
 # Training parameters
 #====================
 start_epoch = 0
-epochs = 100  # number of epochs to train for (if early stopping is not triggered)
+epochs = 3  # number of epochs to train for (if early stopping is not triggered)
 epochs_since_improvement = 0  # keeps track of number of epochs since there's been an improvement in validation BLEU
 patience = 20  # early stopping patience
 batch_size = 80
@@ -60,10 +60,12 @@ alpha_c = 1.  # regularization parameter for 'doubly stochastic attention', as i
 best_bleu4 = 0.  # BLEU-4 score right now
 print_freq = 100  # print training/validation stats every __ batches
 fine_tune_encoder = False  # fine-tune encoder?
-fine_tune_embeddings = True  # fine-tine embeddings?
+fine_tune_embeddings = False  # fine-tine embeddings?
 checkpoint = None  # path to checkpoint, None if none
-save_name = "{}_bs{}_ad{}_dd{}_elr{}_dlr{}".format(data_name, batch_size, attention_dim, decoder_dim, encoder_lr * int(fine_tune_encoder), decoder_lr)
+train_name = "bs{}_ad{}_dd{}_elr{}_dlr{}".format(batch_size, attention_dim, decoder_dim, 
+                                                encoder_lr * int(fine_tune_encoder), decoder_lr)
 
+save_dir = pjoin(PATH_MODELS, data_name, train_name)
 
 def main():
     """
@@ -71,17 +73,30 @@ def main():
     """
 
     global best_bleu4, epochs_since_improvement, checkpoint, start_epoch, fine_tune_encoder, data_name, word_map
+    
+    # Create save directory if necessary
+    if not os.path.isdir(save_dir):
+        os.makedirs(save_dir)
 
+    # Print training parameters
     print("--------- Parameters----------")
     print(" - Batch size = {}".format(batch_size))
     print(" - Encoder: lr = {}".format(encoder_lr))
     print(" - Decoder: lr = {}, attention_dim = {}, decoder_dim = {}".format(decoder_lr, attention_dim, decoder_dim))
-    print(" - Fine-tuning: encoder = {}, embeddings = {}".format(fine_tune_encoder, fine_tune_embeddings))
-    print()
+    print(" - Fine-tuning: encoder = {}, embeddings = {}\n".format(fine_tune_encoder, fine_tune_embeddings))
+
+    # Histories
+    history = {
+        "train_loss": [],
+        "train_top5acc": [],
+        "val_loss": [],
+        "val_top5acc": [],
+        "val_bleu4": [],
+    }
+
     # Read the word map
     # word_map, embeddings, emb_dim = load_embeddings(PATH_WORD2VEC, PATH_EMOJI2VEC)
     # embeddings = torch.load(os.path.join(data_folder, 'EMBEDDINGS_' + data_name + '.pt')) # DEBUGGING
-
     word_map_file = os.path.join(data_folder, 'WORDMAP_' + data_name + '.json')
     with open(word_map_file, 'r') as j:
         word_map = json.load(j)
@@ -114,6 +129,7 @@ def main():
         decoder_optimizer = checkpoint['decoder_optimizer']
         encoder = checkpoint['encoder']
         encoder_optimizer = checkpoint['encoder_optimizer']
+        history = checkpoint['history']
 
         if fine_tune_encoder is True and encoder_optimizer is None:
             encoder.fine_tune(fine_tune_encoder)
@@ -139,28 +155,15 @@ def main():
         CaptionDataset(data_folder, data_name, 'VAL', transform=transforms.Compose([normalize])),
         batch_size=batch_size, shuffle=True, num_workers=workers, pin_memory=True)
 
-    # Histories
-    train_loss_history = []
-    train_top5acc_history = []
-    val_loss_history = []
-    val_top5acc_history = []
-    val_bleu4_history = []
-
     # Epochs
     for epoch in range(start_epoch, epochs):
         print('Epoch: {}'.format(epoch))
 
         # Decay learning rate if there is no improvement for 8 consecutive epochs, and terminate training after 20
         if epochs_since_improvement == patience:
-            # Print histories 
-            print()
-            print("Histories:")
-            print("train_loss_history = ", train_loss_history)
-            print("train_top5acc_history = ", train_top5acc_history)
-            print("val_loss_history = ", val_loss_history)
-            print("val_top5acc_history = ", val_top5acc_history)
-            print("val_bleu4_history = ", val_bleu4_history)
-            print()
+            print("\nHistories:")
+            for k,v in history.items():
+                print("{} = {}".format(k, v))
             break
         
         if epochs_since_improvement > 0 and epochs_since_improvement % 8 == 0:
@@ -184,11 +187,11 @@ def main():
                                 criterion=criterion)
 
         # Update the histories
-        train_loss_history.append(train_loss.avg)
-        train_top5acc_history.append(train_top5acc.avg)
-        val_loss_history.append(val_loss.avg)
-        val_top5acc_history.append(val_top5acc.avg)
-        val_bleu4_history.append(recent_bleu4)
+        history["train_loss"].append(train_loss.avg)
+        history["train_top5acc"].append(train_top5acc.avg)
+        history["val_loss"].append(val_loss.avg)
+        history["val_top5acc"].append(val_top5acc.avg)
+        history["val_bleu4"].append(recent_bleu4)
 
         # Check if there was an improvement
         is_best = recent_bleu4 > best_bleu4
@@ -200,9 +203,8 @@ def main():
             epochs_since_improvement = 0
 
         # Save checkpoint
-        save_checkpoint(os.path.join(PATH_MODELS, data_name), save_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
-                        decoder_optimizer, recent_bleu4, train_loss_history, train_top5acc_history,
-                        val_loss_history, val_top5acc_history, val_bleu4_history, is_best)
+        save_checkpoint(save_dir, data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
+                        decoder_optimizer, recent_bleu4, history, is_best)
                
 
 

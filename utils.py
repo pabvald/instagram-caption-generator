@@ -7,6 +7,7 @@
 import json
 import torch
 import numpy as np
+import matplotlib.pyplot as plt 
 from config import *
 from collections import Counter
 from os.path import join as pjoin
@@ -62,11 +63,42 @@ def accuracy(scores, targets, k):
     correct_total = correct.view(-1).float().sum()  # 0D tensor
     return correct_total.item() * (100.0 / batch_size)
 
+def plot_history(save_dir, data_name, history):
+    """ 
+    Creates a plot for the history of the different metrics (loss, top-5 accuracy, bleu4) during
+    training.
+    :param history: history of train loss, train top 5 accuracies, val. loss, val. top5 accuracy
+        and val bleu4.
+    """
+    # plot the train and validation loss history
+    plt.figure()
+    plt.title("Loss history")
+    plt.plot(history["train_loss"], label="train loss")
+    plt.plot(history["val_loss"],   label="val loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.savefig(pjoin(save_dir, data_name + '_loss.png'))
+
+    # plot train and validation top5 accuracy
+    plt.figure()
+    plt.title("Top 5 accuracy history")
+    plt.plot(history["train_top5acc"],  label="train acc.")
+    plt.plot(history["val_top5acc"],    label="val acc.")
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
+    plt.legend()
+    plt.savefig(pjoin(save_dir, data_name + '_top5acc.png'))
+
+    # plot validation BLEU-4 score
+    plt.figure()
+    plt.title("BLEU-4 history")
+    plt.plot(history["val_bleu4"])
+    plt.savefig(pjoin(save_dir, data_name + '_bleu4.png'))
+
 
 def save_checkpoint(save_dir, data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
-                    decoder_optimizer,
-                    bleu4, train_loss_history, train_top5acc_history,
-                    val_loss_history, val_top5acc_history, val_bleu4_history, is_best):
+                    decoder_optimizer, bleu4, history, is_best):
     """
     Saves model checkpoint.
     :param data_name: base name of processed dataset
@@ -77,6 +109,8 @@ def save_checkpoint(save_dir, data_name, epoch, epochs_since_improvement, encode
     :param encoder_optimizer: optimizer to update encoder's weights, if fine-tuning
     :param decoder_optimizer: optimizer to update decoder's weights
     :param bleu4: validation BLEU-4 score for this epoch
+    :param history: history of train loss, train top 5 accuracies, val. loss, val. top5 accuracy
+        and val bleu4.
     :param is_best: is this checkpoint the best so far?
     """
     state = {'epoch': epoch,
@@ -86,11 +120,7 @@ def save_checkpoint(save_dir, data_name, epoch, epochs_since_improvement, encode
              'decoder': decoder,
              'encoder_optimizer': encoder_optimizer,
              'decoder_optimizer': decoder_optimizer,
-             'train_loss_history': train_loss_history,
-             'train_top5acc_history': train_top5acc_history,
-             'val_loss_history': val_loss_history,
-             'val_top5acc_history': val_top5acc_history,
-             'val_blau4_history': val_bleu4_history
+             'history': history,
              }
     filename = 'checkpoint_' + data_name + '.pth.tar'
     torch.save(state, pjoin(save_dir, filename))
