@@ -32,7 +32,7 @@ args = vars(parser.parse_args())
 RAND_STATE = 42
 DATASET = args['dataset']
 CAPTIONS_PER_IMAGE = int(args['captions_per_image'])
-MIN_WORD_FREQ = None #int(args['min_word_frequency'])
+MIN_WORD_FREQ = int(args['min_word_frequency'])
 CAPT_MIN_LENGTH = int(args['minimal_length']) 
 CAPT_MAX_LENGTH = int(args['maximal_length'])
 
@@ -100,7 +100,7 @@ def main():
 
     # Create embeddings
     _, embeddings, emb_dim = load_embeddings(word_map=word_map)
-    torch.save(embeddings, pjoin(PATH_FLICKR, 'EMBEDDINGS_{}.pt'.format(DATASET)))
+    torch.save(embeddings, pjoin(OUTPUT_FOLDER, 'EMBEDDINGS_{}.pt'.format(DATASET)))
 
 if __name__ == '__main__':
     main()

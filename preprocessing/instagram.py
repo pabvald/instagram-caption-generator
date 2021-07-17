@@ -269,7 +269,11 @@ def main():
                 
                 tokens = caption.split()
                 word_freq.update(tokens)
-                captions.append(tokens)
+                if len(tokens) <= CAPT_MAX_LENGTH:
+                    captions.append(tokens)
+
+            if len(captions) == 0:
+                continue
 
             if split in {'train'}:
                 train_image_paths.append(path)

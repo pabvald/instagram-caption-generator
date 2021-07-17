@@ -28,7 +28,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-min", "--minimal-length", default=2)
 parser.add_argument("-max", "--maximal-length", default=50)
 parser.add_argument("-wf", "--min-word-frequency", default=5)
-parser.add_argument("-c", "--captions-per-image", default=1)
+parser.add_argument("-c", "--captions-per-image", default=3)
 parser.add_argument("-t", "--train-size", default=0.65)
 parser.add_argument("-v", "--val-size", default=0.15)
 args = vars(parser.parse_args())
@@ -80,12 +80,15 @@ def main():
     for split, dataset in splits.items():        
         for _, row in dataset.iterrows():
             captions = [] 
-            path = pjoin(PATH_INSTA, row[1] + '.jpg')
-            for i in range(CAPTIONS_PER_IMAGE):                
-                caption = row[2]
-                tokens = caption.split()
-                word_freq.update(tokens)
+            path = pjoin(PATH_INSTA, row[1] + '.jpg')              
+            caption = row[2]
+            tokens = caption.split()
+            word_freq.update(tokens)
+            if len(tokens) <= CAPT_MAX_LENGTH:
                 captions.append(tokens)
+
+            if len(captions) == 0:
+                continue
 
             if split in {'train'}:
                 train_image_paths.append(path)
