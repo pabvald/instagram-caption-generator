@@ -28,7 +28,7 @@ metrics = ['bleu', 'cider', 'rouge', 'meteor'] # select the desired metrics
 data_folder = PATH_FLICKR  # folder with data files saved by create_input_files.py
 data_name = 'flickr8k'  # base name shared by data files
 checkpoint = pjoin(PATH_MODELS, data_name, 'BEST_checkpoint_bs80_ad300_dd300_elr0.0_dlr0.0004.pth.tar')  # model checkpoint
-word_map_file = pjoin(PATH_FLICKR, 'WORDMAP_flickr8k.json')  # word map, ensure it's the same the data was encoded with and the model was trained with
+word_map_file = pjoin(data_folder, 'WORDMAP_' + data_name + '.json')  # word map, ensure it's the same the data was encoded with and the model was trained with
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # sets device for model and PyTorch tensors
 cudnn.benchmark = True  # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
 
@@ -52,7 +52,7 @@ normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 
 
-def evaluate(beam_size, metrics):
+def evaluate(beam_size, metrics, verbose=False):
     """
     Evaluation
     :param beam_size: beam size at which to generate captions for evaluation
@@ -71,9 +71,16 @@ def evaluate(beam_size, metrics):
     references = dict()
     hypotheses = dict()
 
+    # Determine captions per image
+    image, caps, caplens, allcaps =  next(iter(test_loader))
+    caps_per_img = allcaps[0].shape[0]
+
     # For each image
     #for i, (image, caps, caplens, allcaps) in enumerate([next(iter(test_loader))]):
     for index, (image, caps, caplens, allcaps) in enumerate(tqdm(test_loader)):
+
+        if index % caps_per_img != 0: 
+            continue
 
         k = beam_size
 
@@ -182,14 +189,12 @@ def evaluate(beam_size, metrics):
         hypotheses[str(index)] = [decode_caption(seq, word_map, inv_word_map)]   
         assert len(references) == len(hypotheses)
 
-        # Print the results for the first 50 images
-        if index < 50:
-            if index % len(img_captions) == 0:
-                print("\n References:")
-                for r in img_captions:
-                    print(" - ", r)
-                print("Hypothesis:")
-            print(" - ", hypotheses[str(index)])  
+        # Print results
+        if verbose and (index % 50 == 0):
+            print("\n References:")
+            for r in img_captions:
+                print(" - ", r)
+            print("Hypothesis:\n - ", hypotheses[str(index)])
 
             # save_image(image, pjoin(EVAL_IMAGES_PATH, '{}.png'.format(i)))
             # print('\nImage: {}'.format(i))
@@ -206,7 +211,7 @@ def evaluate(beam_size, metrics):
 
 if __name__ == '__main__':
     beam_size = 1
-    metrics = evaluate(beam_size, metrics)
+    metrics = evaluate(beam_size, metrics, verbose=True)
     
     print("\n Evaluation metrics with beam size = {}".format(beam_size))
     for k, v in metrics.items():
