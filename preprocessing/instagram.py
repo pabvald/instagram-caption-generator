@@ -11,9 +11,7 @@ import numpy as np
 import pandas as pd
 #import pytesseract as tess
 
-currentdir = os.path.dirname(os.path.realpath(__file__))
-parentdir = os.path.dirname(currentdir)
-sys.path.append(parentdir)
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 from config import *
 from collections import Counter

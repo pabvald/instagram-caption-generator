@@ -9,9 +9,7 @@ import argparse
 import numpy as np
 import pandas as pd
 
-currentdir = os.path.dirname(os.path.realpath(__file__))
-parentdir = os.path.dirname(currentdir)
-sys.path.append(parentdir)
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 from config import *
 from collections import Counter
@@ -41,6 +39,7 @@ PATH_KAPATHY_SPLIT = pjoin(PATH_FLICKR, 'dataset_flickr8k.json')
 FLICKR_IMG_FOLDER = pjoin(PATH_FLICKR, 'img')
 
 # Constants
+DATA_NAME = 'flickr8k-insta'
 RAND_STATE = 42
 MIN_WORD_FREQ =  None #int(args['min_word_frequency'])
 CAPTIONS_PER_IMAGE = int(args['captions_per_image'])
@@ -74,7 +73,6 @@ def main():
         data.to_csv(pjoin(PATH_INSTA, "preprocessed.csv"))
    
     # split the dataset in train, val, test
-    print("Splitting the dataset in train, trainval, val and test ...")
     splits = split_dataset(data)  
 
     for split, dataset in splits.items():        
@@ -101,6 +99,7 @@ def main():
                 test_image_captions.append(captions)
     
     # ======================= FLICKR8K =============================
+    print("Loading Flickr dataset...")
     # Read Karpathy JSON
     with open(PATH_KAPATHY_SPLIT, 'r') as j:
         data = json.load(j)
@@ -134,19 +133,19 @@ def main():
     assert len(test_image_paths) == len(test_image_captions)
 
     # Create word map, save it to json
-    word_map = create_wordmap("flickr8k-insta", word_freq, PATH_FLICKR_INSTA, MIN_WORD_FREQ)
+    word_map = create_wordmap(DATA_NAME, word_freq, PATH_FLICKR_INSTA, MIN_WORD_FREQ)
 
     # Sample captions for each image, save images to HDF5 file, and captions and their lengths to JSON files
     for impaths, imcaps, split in [ (train_image_paths, train_image_captions, 'TRAIN'),
                                    (val_image_paths, val_image_captions, 'VAL'),
                                    (test_image_paths, test_image_captions, 'TEST')]:
         
-        create_input_files("flickr8k-insta", impaths, imcaps, split, word_map, 
+        create_input_files(DATA_NAME, impaths, imcaps, split, word_map, 
                             PATH_FLICKR_INSTA, CAPTIONS_PER_IMAGE, CAPT_MAX_LENGTH)
 
     # Create embeddings
     _, embeddings, emb_dim = load_embeddings(word_map=word_map)
-    torch.save(embeddings, pjoin(PATH_FLICKR_INSTA, 'EMBEDDINGS_flickr8k-insta.pt'))
+    torch.save(embeddings, pjoin(PATH_FLICKR_INSTA, 'EMBEDDINGS_' + DATA_NAME + '.pt'))
 
 if __name__ == '__main__':
     main()

@@ -7,9 +7,7 @@ import json
 import torch
 import argparse
 
-currentdir = os.path.dirname(os.path.realpath(__file__))
-parentdir = os.path.dirname(currentdir)
-sys.path.append(parentdir)
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 from config import *
 from os.path import join as pjoin

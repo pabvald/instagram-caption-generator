@@ -10,4 +10,4 @@ Image-caption metrics: BLEU METEOR CIDEr ROUGE
 The code contained in this package is based on: 
 
 - Microsoft COCO Caption Evaluation: https://github.com/tylin/coco-caption
-- image-caption-metrics repositorz, from EricWWWW: https://github.com/EricWWWW/image-caption-metrics
+- image-caption-metrics repository, from EricWWWW: https://github.com/EricWWWW/image-caption-metrics
