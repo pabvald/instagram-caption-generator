@@ -40,8 +40,8 @@ data_name = 'flickr8k'  # base name shared by data files
 # Model parameters
 #=================
 emb_dim = 300  # dimension of word embeddings
-attention_dim = 300  # dimension of attention linear layers
-decoder_dim = 300  # dimension of decoder RNN
+attention_dim = 512  # dimension of attention linear layers
+decoder_dim = 512  # dimension of decoder RNN
 dropout = 0.5
 cudnn.benchmark = True  # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
 
@@ -49,7 +49,7 @@ cudnn.benchmark = True  # set to true only if inputs to model are fixed size; ot
 # Training parameters
 #====================
 start_epoch = 0
-epochs = 2  # number of epochs to train for (if early stopping is not triggered)
+epochs = 120  # number of epochs to train for (if early stopping is not triggered)
 epochs_since_improvement = 0  # keeps track of number of epochs since there's been an improvement in validation BLEU
 patience = 20  # early stopping patience
 batch_size = 80
@@ -61,9 +61,9 @@ alpha_c = 1.  # regularization parameter for 'doubly stochastic attention', as i
 best_bleu4 = 0.  # BLEU-4 score right now
 print_freq = 100  # print training/validation stats every __ batches
 fine_tune_encoder = False  # fine-tune encoder?
-fine_tune_embeddings = False  # fine-tine embeddings?
+fine_tune_embeddings = True  # fine-tine embeddings?
 checkpoint = None  # path to checkpoint, None if none
-save_name = "bs{}_ad{}_dd{}_elr{}_dlr{}".format(batch_size, attention_dim, decoder_dim, (encoder_lr * int(fine_tune_encoder)), decoder_lr)
+save_name = "bs{}_ad{}_dd{}_fte{}_elr{}_dlr{}".format(batch_size, attention_dim, decoder_dim, int(fine_tune_embeddings), (encoder_lr * int(fine_tune_encoder)), decoder_lr)
 
 
 def main():
@@ -160,9 +160,9 @@ def main():
             break
         
         if epochs_since_improvement > 0 and epochs_since_improvement % 8 == 0:
-            adjust_learning_rate(decoder_optimizer, 0.8)
+            adjust_learning_rate(decoder_optimizer, 0.75)
             if fine_tune_encoder:
-                adjust_learning_rate(encoder_optimizer, 0.8)
+                adjust_learning_rate(encoder_optimizer, 0.75)
 
         # One epoch's training
         train_loss, train_top5acc = train(train_loader=train_loader,

@@ -38,11 +38,9 @@ CAPT_MAX_LENGTH = int(args['maximal_length'])
 
 # Paths 
 OUTPUT_FOLDER = PATH_FLICKR
-IMG_FOLDER = pjoin(OUTPUT_FOLDER, 'img')
 if DATASET == 'flickr30k':
     OUTPUT_FOLDER = PATH_FLICKR30
-    IMG_FOLDER = pjoin(OUTPUT_FOLDER, 'img/flickr30k_images')
-
+IMG_FOLDER = pjoin(OUTPUT_FOLDER, 'img')
 PATH_KAPATHY_SPLIT = pjoin(OUTPUT_FOLDER, 'dataset_' + DATASET + '.json')
 
 def main():
