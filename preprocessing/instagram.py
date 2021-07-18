@@ -218,10 +218,6 @@ def preprocess(data):
     wv = KeyedVectors.load_word2vec_format(PATH_WORD2VEC, binary=True)
     ev = KeyedVectors.load_word2vec_format(PATH_EMOJI2VEC, binary=True)
 
-    # load .csv file containing image locations and captions 
-    print("\tLoading captions...")
-    data = pd.read_csv(pjoin(PATH_INSTA, 'captions_csv.csv'))
-
     # preprocess the images
     # print("\tPreprocessing images...")
     # data = preprocess_images(data)
@@ -241,8 +237,16 @@ def main():
         data = pd.read_csv(pjoin(PATH_INSTA, 'preprocessed.csv'))
     else:
         data = pd.read_csv(pjoin(PATH_INSTA, 'captions_csv.csv'))
+        data2 = pd.read_csv(pjoin(PATH_INSTA, 'captions_csv2.csv'))
+        data = pd.concat(data, data2)
         data = preprocess(data)
         data.to_csv(pjoin(PATH_INSTA, "preprocessed.csv"))
+
+        data2 = pd.read_csv(pjoin(PATH_INSTA, 'captions_csv2.csv'))
+        data2 = preprocess(data2)
+        data2.to_csv(pjoin(PATH_INSTA, "preprocessed2.csv"))
+
+
    
     # split the dataset in train, val, test
     print("Splitting the dataset in train, trainval, val and test ...")
