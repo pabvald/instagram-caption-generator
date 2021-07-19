@@ -27,7 +27,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 # Parse parameters
 parser = argparse.ArgumentParser()
 parser.add_argument("-min", "--minimal-length", default=2)
-parser.add_argument("-max", "--maximal-length", default=50)
+parser.add_argument("-max", "--maximal-length", default=25)
 parser.add_argument("-wf", "--min-word-frequency", default=5)
 parser.add_argument("-c", "--captions-per-image", default=1)
 parser.add_argument("-t", "--train-size", default=0.65)
@@ -56,30 +56,28 @@ def slang_translator(filepath, text):
         :param filepath: path to the .txt files containing the slang translations
         :param text: text to translate
     """
-   
+    #filepath = 'data/preprocessing/slang.txt'
     with open(filepath, "r") as csv_file:
         # Reading file as CSV with delimiter as "=", 
         # so that abbreviation are stored in row[0] and phrases in row[1]
         data_from_file = csv.reader(csv_file, delimiter="=")
+        mapping = {row[0] : row[1] for row in data_from_file}
 
-        words = text.split()        
-        for j, word in enumerate(text.split()):         
-            # Removing Special Characters.
-            word = re.sub('[^a-zA-Z0-9-_.]', '', word)
-            for row in data_from_file:
-                # Check if selected word matches short forms[LHS] in text file.
-                f_word = word.strip().upper()
-                if f_word == row[0]:
-                    # If match found replace it with its appropriate phrase in text file.
-                    words[j] = row[1] 
+        translated = []  
+        for j, word in enumerate(text.split()):    
+            translation = mapping.get(word, None)
+            if translation:
+                translated.append(translation)
+            else:
+                translated.append(word)
         
-    return(' '.join(words))
+    return ' '.join(translated)
 
 def preprocess_captions(data, word2vec, emoji2vec):
     """ Preprocess the captions: remove non-english or punctuation characters,
     remove captions shorter than the minimum, lowercase captions """
     lengths = []
-
+    
     for row, caption in enumerate(data['Caption']):
         if type(caption) != str or len(caption.split()) < CAPT_MIN_LENGTH:
             data.drop(row, axis=0, inplace=True)
@@ -87,6 +85,11 @@ def preprocess_captions(data, word2vec, emoji2vec):
             # slang translation
             caption = slang_translator(PATH_SLANG, caption)
 
+            # remove hastags and mentions
+            caption = list(filter(lambda w: w[0] not in ['@', '#'], caption.split()))
+            caption = ' '.join(caption)
+
+            # remove other invalid characters
             new_caption = ""
             for _char in caption:
                 # ignore non-english and punctuation characters
@@ -105,7 +108,9 @@ def preprocess_captions(data, word2vec, emoji2vec):
                 if (word in word2vec) or (word in emoji2vec):
                     actual_length += 1
 
-            if actual_length < CAPT_MIN_LENGTH or actual_length > CAPT_MAX_LENGTH:
+            if (actual_length < CAPT_MIN_LENGTH) or (actual_length > CAPT_MAX_LENGTH):
+                data.drop(row, axis=0, inplace=True)
+            elif actual_length < 5 and 'love' in new_caption.split():
                 data.drop(row, axis=0, inplace=True)
             else:           
                 #lengths.append(actual_length)
@@ -267,7 +272,7 @@ def main():
                 
                 tokens = caption.split()
                 word_freq.update(tokens)
-                if len(tokens) <= CAPT_MAX_LENGTH:
+                if len(tokens) >= CAPT_MIN_LENGTH and len(tokens) <= CAPT_MAX_LENGTH:
                     captions.append(tokens)
 
             if len(captions) == 0:
