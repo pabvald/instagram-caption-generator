@@ -25,12 +25,13 @@ from torchvision.utils import save_image
 
 # Parameters
 metrics = ['bleu', 'cider', 'rouge', 'meteor'] # select the desired metrics
-data_folder = PATH_FLICKR  # folder with data files saved by create_input_files.py
-data_name = 'flickr8k'  # base name shared by data files
-checkpoint = pjoin(PATH_MODELS, data_name, 'BEST_checkpoint_bs80_ad300_dd300_elr0.0_dlr0.0004.pth.tar')  # model checkpoint
+data_folder = PATH_INSTA  # folder with data files saved by create_input_files.py
+data_name = 'instagram'  # base name shared by data files
+checkpoint = pjoin(PATH_MODELS, data_name, 'BEST_checkpoint_bs80_ad300_dd300_fte0_elr0.0_dlr0.0036.pth.tar')  # model checkpoint
 word_map_file = pjoin(data_folder, 'WORDMAP_' + data_name + '.json')  # word map, ensure it's the same the data was encoded with and the model was trained with
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # sets device for model and PyTorch tensors
 cudnn.benchmark = True  # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
+print_interval = 30
 
 # Load model
 checkpoint = torch.load(checkpoint, map_location=torch.device('cpu'))
@@ -190,18 +191,12 @@ def evaluate(beam_size, metrics, verbose=False):
         assert len(references) == len(hypotheses)
 
         # Print results
-        if verbose and (index % 50 == 0):
+        if verbose and (index % print_interval == 0):
             print("\n References:")
             for r in img_captions:
                 print(" - ", r)
             print("Hypothesis:\n - ", hypotheses[str(index)])
 
-            # save_image(image, pjoin(EVAL_IMAGES_PATH, '{}.png'.format(i)))
-            # print('\nImage: {}'.format(i))
-            # print('The real sentence:      {}'.format(decode_caption(caps[0], word_map, inv_word_map)))
-            # scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(torch.tensor([image]).to(device), caps.to(device), caplens.to(device))
-            # print('The generated sentence: {}\n'.format(caps_sorted[0]))
-    
     # Calculate metrics
     bleu4 = corpus_bleu(list(references.values()), list(hypotheses.values()))
     results = evaluate_metrics(references, hypotheses, metrics=metrics)   
