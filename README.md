@@ -26,7 +26,7 @@
 
 ## Jupyter Notebooks
 
-The `notebooks/' folder contains the following Jupyter Notebooks:
+The `notebooks/` folder contains the following Jupyter Notebooks:
 
 - [ev_metrics_summary.ipynb](./notebooks/ev_metrics_summary.ipynb): includes an explanation of the four evaluation metrics that we have used (BLEU, METEOR, CIDEr and ROUGE-L) with references to the corresponding *papers* as well as examples of how to compute these metrics using Python libraries or the `evaluation` model.
 
@@ -87,10 +87,15 @@ Note: the code assumes that a file `EMBEDDINGS_dataset.pt` containing the embedd
 ## Evaluation 
 The [evaluate.py](./evaluate.py) scripts to evaluate a model providing the correspoding checkpoint and making use of the `evaluation` module. By default, all the metrics are calculated: BLEU (1, 2, 3 and 4), METEOR, CIDEr and ROUGE-L. Check the code to see which parameters can be specified
 
+Once the parameters have been fixed, you can execute the following command to train the model: 
+```python 
+python evaluate.py 
+```
+
 ## Honor Code 
 
 This repository includes code from the following repositories: 
 
 - Microsoft COCO Caption Evaluation, from Tsung-Yi Lin: https://github.com/tylin/coco-caption
 - image-caption-metrics repository, from EricWWWW: https://github.com/EricWWWW/image-caption-metrics
-- A PyTorch tutorial for Image Captioning, from Sagar Vinodababu
+- A PyTorch tutorial for Image Captioning, from Sagar Vinodababu: https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Image-Captioning
