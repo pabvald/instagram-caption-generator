@@ -9,7 +9,7 @@ import torch
 import argparse
 import numpy as np
 import pandas as pd
-#import pytesseract as tess
+import pytesseract as tess
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
@@ -19,7 +19,7 @@ from gensim.models import KeyedVectors
 from preprocessing import create_input_files
 from utils import create_wordmap, load_embeddings
 
-#tess.pytesseract.tesseract_cmd = r'D:\Tesseract-OCR\tesseract.exe'
+tess.pytesseract.tesseract_cmd = r'D:\Tesseract-OCR\tesseract.exe'
 
 # Remove warnings
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -124,24 +124,24 @@ def preprocess_captions(data, word2vec, emoji2vec):
 
     return data
 
-# def preprocess_images(data):
-#     """ Preprocess the images: remove the images that contain more than one word of text """
-#     text_in_images = []
-#     for i in data['Image File']:
-#             img = Image.open(i +'.jpg')
-#             text = tess.image_to_string(img)
-#             text_in_images.append(text)
-#     del_row = 0
-#     for j in text_in_images:
-#         x = j.strip().replace('\n'," ").replace('\x0c',"").strip()
-#         if len(x.split()) > 2:
-#             data.drop(del_row, axis=0, inplace=True)
-#         del_row = del_row + 1
+def remove_img_with_text(data):
+    """ Preprocess the images: remove the images that contain more than one word of text """
+    text_in_images = []
+    for i in data['Image File']:
+            img = Image.open(i +'.jpg')
+            text = tess.image_to_string(img)
+            text_in_images.append(text)
+    del_row = 0
+    for j in text_in_images:
+        x = j.strip().replace('\n'," ").replace('\x0c',"").strip()
+        if len(x.split()) > 2:
+            data.drop(del_row, axis=0, inplace=True)
+        del_row = del_row + 1
 
-#     data = data.reset_index()       
-#     data.drop(['index'], axis=1, inplace=True)
+    data = data.reset_index()       
+    data.drop(['index'], axis=1, inplace=True)
 
-#     return data
+    return data
 
 def split_dataset(data):
     """ Split dataset in train, validation and test set
@@ -225,13 +225,13 @@ def preprocess(data):
     print("\tLoading captions...")
     data = pd.read_csv(pjoin(PATH_INSTA, 'captions_csv.csv'))
 
-    # preprocess the images
-    # print("\tPreprocessing images...")
-    # data = preprocess_images(data)
-
     # preprocess the captions
     print("\tPrepocessing captions...")
     data = preprocess_captions(data, wv, ev)
+
+    # preprocess the images
+    print("\tRemoving images with text...")
+    data = remove_img_with_text(data)
      
     return data 
 

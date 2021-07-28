@@ -1,9 +1,3 @@
-
-"""
-    Author: Sagar Vinodababu (@sgrvinod)
-    Source: https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Image-Captioning
-"""
-
 import json
 import torch
 import numpy as np

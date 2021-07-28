@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-    Author: Sagar Vinodababu (@sgrvinod)
-    Source: https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Image-Captioning
-"""
-
 import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
@@ -27,11 +22,11 @@ from torchvision.utils import save_image
 metrics = ['bleu', 'cider', 'rouge', 'meteor'] # select the desired metrics
 data_folder = PATH_INSTA  # folder with data files saved by create_input_files.py
 data_name = 'instagram'  # base name shared by data files
-checkpoint = pjoin(PATH_MODELS, data_name, 'BEST_checkpoint_bs80_ad300_dd300_fte0_elr0.0_dlr0.0036.pth.tar')  # model checkpoint
+checkpoint = pjoin(PATH_MODELS, data_name, 'BEST_checkpoint_bs32_ad300_dd300_fte1_elr0.0001_dlr0.0005_2.pth.tar')  # model checkpoint
 word_map_file = pjoin(data_folder, 'WORDMAP_' + data_name + '.json')  # word map, ensure it's the same the data was encoded with and the model was trained with
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # sets device for model and PyTorch tensors
 cudnn.benchmark = True  # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
-print_interval = 30
+print_interval = 1
 
 # Load model
 checkpoint = torch.load(checkpoint, map_location=torch.device('cpu'))
@@ -80,8 +75,8 @@ def evaluate(beam_size, metrics, verbose=False):
     #for i, (image, caps, caplens, allcaps) in enumerate([next(iter(test_loader))]):
     for index, (image, caps, caplens, allcaps) in enumerate(tqdm(test_loader)):
 
-        if index % caps_per_img != 0: 
-            continue
+        #if index % caps_per_img != 0: 
+        #    continue
 
         k = beam_size
 

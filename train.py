@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-    Author: Sagar Vinodababu (@sgrvinod)
-    Source: https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Image-Captioning
-"""
-
 import os
 import json
 import time
@@ -32,16 +27,16 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # sets de
 #=================
 # Data parameters
 #=================
-data_folder = PATH_FLICKR  # folder with data files saved by create_input_files.py
-data_name = 'flickr8k'  # base name shared by data files
+data_folder = PATH_INSTA  # folder with data files saved by create_input_files.py
+data_name = 'instagram'  # base name shared by data files
 
 
 #=================
 # Model parameters
 #=================
 emb_dim = 300  # dimension of word embeddings
-attention_dim = 512  # dimension of attention linear layers
-decoder_dim = 512  # dimension of decoder RNN
+attention_dim = 300  # dimension of attention linear layers
+decoder_dim = 300  # dimension of decoder RNN
 dropout = 0.5
 cudnn.benchmark = True  # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
 
@@ -52,18 +47,18 @@ start_epoch = 0
 epochs = 120  # number of epochs to train for (if early stopping is not triggered)
 epochs_since_improvement = 0  # keeps track of number of epochs since there's been an improvement in validation BLEU
 patience = 20  # early stopping patience
-batch_size = 80
+batch_size = 32
 workers = 1  # for data-loading; right now, only 1 works with h5py
 encoder_lr = 1e-4  # learning rate for encoder if fine-tuning
-decoder_lr = 4e-4  # learning rate for decoder
+decoder_lr = 5e-4  # learning rate for decoder
 grad_clip = 5.  # clip gradients at an absolute value of
 alpha_c = 1.  # regularization parameter for 'doubly stochastic attention', as in the paper
 best_bleu4 = 0.  # BLEU-4 score right now
 print_freq = 100  # print training/validation stats every __ batches
-fine_tune_encoder = False  # fine-tune encoder?
+fine_tune_encoder = True  # fine-tune encoder?
 fine_tune_embeddings = True  # fine-tine embeddings?
-checkpoint = None  # path to checkpoint, None if none
-save_name = "bs{}_ad{}_dd{}_fte{}_elr{}_dlr{}".format(batch_size, attention_dim, decoder_dim, int(fine_tune_embeddings), (encoder_lr * int(fine_tune_encoder)), decoder_lr)
+checkpoint = pjoin(PATH_MODELS, data_name, "BEST_checkpoint_bs80_ad300_dd300_fte1_elr0.0_dlr0.0005.pth.tar")  # path to checkpoint, None if none
+save_name = "bs{}_ad{}_dd{}_fte{}_elr{}_dlr{}_2".format(batch_size, attention_dim, decoder_dim, int(fine_tune_embeddings), (encoder_lr * int(fine_tune_encoder)), decoder_lr)
 
 
 def main():
@@ -315,8 +310,16 @@ def validate(val_loader, encoder, decoder, criterion):
     # explicitly disable gradient calculation to avoid CUDA memory error
     # solves the issue #57
     with torch.no_grad():
+
+        # Determine captions per image
+        image, caps, caplens, allcaps =  next(iter(val_loader))
+        caps_per_img = allcaps[0].shape[0]
+
         # Batches
-        for i, (imgs, caps, caplens, allcaps) in enumerate(val_loader):
+        for index, (imgs, caps, caplens, allcaps) in enumerate(val_loader):
+            
+            if index % caps_per_img != 0: 
+                continue
 
             # Move to device, if available
             imgs = imgs.to(device)
@@ -351,11 +354,11 @@ def validate(val_loader, encoder, decoder, criterion):
 
             start = time.time()
 
-            if i % print_freq == 0:
+            if index % print_freq == 0:
                 print('Validation: [{0}/{1}]\t'
                       'Batch Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                      'Top-5 Accuracy {top5.val:.3f} ({top5.avg:.3f})\t'.format(i, len(val_loader), batch_time=batch_time,
+                      'Top-5 Accuracy {top5.val:.3f} ({top5.avg:.3f})\t'.format(index, len(val_loader), batch_time=batch_time,
                                                                                 loss=losses, top5=top5accs))
 
             # Store references (true captions), and hypothesis (prediction) for each image

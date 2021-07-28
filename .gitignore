@@ -147,4 +147,4 @@ word2vec.bin
 emoji2vec.bin
 
 # HT Condor 
-.sub
+*.sub

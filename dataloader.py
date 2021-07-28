@@ -1,9 +1,3 @@
-
-"""
-    Author: Sagar Vinodababu (@sgrvinod)
-    Source: https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Image-Captioning
-"""
-
 import torch
 import json
 import h5py
